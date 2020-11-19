@@ -1,7 +1,7 @@
 """
 Created on Sun Oct  4 12:18:15 2020
 
-@author: yrc2
+@author: yrc2. Modified by Dalton Stewart.
 """
 import os
 import pandas as pd
@@ -15,7 +15,6 @@ folder = os.path.dirname(__file__)
 xlfile = os.path.join(folder, 'State_Parameters.xlsx')
 nm_data = pd.read_excel(xlfile, index_col=[0])
 
-
     
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
@@ -24,7 +23,6 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.state = state
         self.with_federal_incentives = with_federal_incentives
         
-    # bst.PowerUtility.price = .0671
     
     def _fill_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         operating_hours = self._operating_hours
@@ -74,13 +72,12 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
              op_hours=operating_hours,
              start=self._start)
 
-        credits_ = tax_incentives.calc_all_tax_incentives(df=False, include_federal=self.with_federal_incentives)    
-        credits_[credits_ > tax] = tax
+        credits = tax_incentives.calc_all_tax_incentives(df=False, include_federal=self.with_federal_incentives)    
+        credits[credits > tax] = tax
 
-        incentives[:] = credits_
+        incentives[:] = credits
         
-# tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
-tea = lc.create_tea(cs.cornstover_sys, IncentivesTEA)
+tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
 
 folder = os.path.dirname(__file__)
 available_states = ('AK','AL','AR','AZ','CA','CO','CT','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA'
@@ -93,7 +90,6 @@ prices_by_state_without_federal = {}
 
 for state in available_states:
             bst.PowerUtility.price = nm_data.loc['rate',state]
-            #tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
             tea.state = state
             tea.with_federal_incentives = True
             prices_by_state_with_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
