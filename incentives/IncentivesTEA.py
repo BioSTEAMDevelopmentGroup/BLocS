@@ -72,9 +72,11 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
              op_hours=operating_hours,
              start=self._start)
 
+        #An appropriate way to handle tax credits and refunds is to consider them
         credits = tax_incentives.calc_all_tax_incentives(df=False, include_federal=self.with_federal_incentives)    
         credits[credits > tax] = tax
 
+        #This is an appropriate way to handle 
         incentives[:] = credits
         
 tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
