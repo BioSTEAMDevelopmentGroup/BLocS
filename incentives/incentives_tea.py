@@ -18,10 +18,9 @@ nm_data = pd.read_excel(xlfile, index_col=[0])
     
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
-    def __init__(self, *args, state='KY', with_federal_incentives=True, **kwargs):
+    def __init__(self, *args, incentives=(), **kwargs):
         super().__init__(*args, **kwargs)
-        self.state = state
-        self.with_federal_incentives = with_federal_incentives
+        self.incentives = incentives
         
     
     def _fill_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
@@ -82,9 +81,11 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
 tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
 
 folder = os.path.dirname(__file__)
-available_states = ('AK','AL','AR','AZ','CA','CO','CT','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA'
-                     ,'MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK',
-                     'OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY')
+available_states = ('AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+                    'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 
+                    'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH',
+                    'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+                    'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY')
 
 prices_by_state_with_federal = {}
 prices_by_state_without_federal = {}
