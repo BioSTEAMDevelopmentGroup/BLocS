@@ -20,9 +20,10 @@ __all__ = (
     'determine_deduction_amount',
     'determine_credit_amount',
     'determine_refund_amount',
+    'determine_tax_incentives',
 )
 
-EXEMPTIONS = set(range(1, 6))
+EXEMPTIONS = set(range(1, 7))
 DEDUCTIONS = set(range(7, 8))
 CREDITS = set(range(8, 20))
 REFUNDS = set(range(21, 24))

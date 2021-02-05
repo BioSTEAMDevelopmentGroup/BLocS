@@ -8,98 +8,105 @@ import pandas as pd
 import numpy as np
 from biorefineries import lipidcane as lc
 from biorefineries import cornstover as cs
-from incentives import TaxIncentives
+import incentives as inct
 import biosteam as bst
-
-folder = os.path.dirname(__file__)
-xlfile = os.path.join(folder, 'State_Parameters.xlsx')
-nm_data = pd.read_excel(xlfile, index_col=[0])
-
     
+__all__ = ('IncentivesTEA',)
+
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
-    def __init__(self, *args, incentives=(), **kwargs):
+    def __init__(self, *args, incentive_numbers=(), 
+                 ethanol_product=None, 
+                 ethanol_group=None, 
+                 biodiesel_group=None,
+                 BT=None,
+                 **kwargs):
         super().__init__(*args, **kwargs)
-        self.incentives = incentives
-        
+        self.incentive_numbers = incentive_numbers
+        self.ethanol_product = ethanol_product
+        self.ethanol_group = ethanol_group
+        self.biodiesel_group = biodiesel_group
+        self.BT = BT 
     
-    def _fill_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
+    def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         operating_hours = self._operating_hours
-        ethanol = 0.
-        for i in self.system.products:
-            if 'Ethanol' in i.chemicals:
-                F_mol = i.F_mol 
-                if F_mol and i.imol['Ethanol'] / i.F_mol > 0.95:
-                    ethanol = i.get_total_flow('gal/hr') * operating_hours
-                    break
-        biodiesel_eq = 0.
-        for s in self.system.streams:
-            if 'Lipid' in i.chemicals:
-                F_mol = i.F_mol 
-                if F_mol and i.imol['Lipid'] / i.F_mol > 0.95:
-                    biodiesel_eq = sum([i.installed_cost for i in s.sink._downstream_units])
-                    break
-        ethanol_eq = 0.
-        for sys in self.system.subsystems:
-            if sys.ID == 'ethanol_production_sys':
-                ethanol_eq = sum([i.installed_cost for i in sys.units])
-        elec_eq = sum([i.installed_cost for i in self.units if i.power_utility.production])
+        ethanol_product = self.ethanol_product
+        biodiesel_group = self.biodiesel_group
+        ethanol_group = self.ethanol_group
+        BT = self.BT
+        ethanol = ethanol_product.get_total_flow('gal/hr') * operating_hours  if ethanol_product else 0.
+        biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() if biodiesel_group else 0.
+        ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost() if ethanol_group else 0.
+        elec_eq = self.lang_factor * BT.purchase_cost if BT else 0.
         TCI = self.TCI
-        self.tax_incentives = tax_incentives = TaxIncentives(
-             state=self.state,
+        exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
+             self.incentive_numbers,
              plant_years=self._years + self._start, 
              variable_incentive_frac_at_startup=self.startup_VOCfrac,
              wages=self.labor_cost, 
              TCI=TCI, 
              ethanol=ethanol,
-             state_income_tax=500000, # TODO: Verify this assumption
              jobs_50=50, # TODO: This is not explicit in BioSTEAM 
              elec_eq=elec_eq,
-             construction_costs=TCI, # TODO: Verify this assumption 
-             subcontract_fees=50000, # TODO: Verify this assumption
-             racks_etc=25000, # TODO: Verify or find a way to estimate
              NM_value=1e6, # TODO: What is this?
-             adj_basis=TCI, # TODO: Verify this assumption
-             value_add=TCI, # TODO: Verify this assumption
-             state_property_tax=200000, # TODO: Verify this assumption
-             airq_taxes=100000, # TODO: Verify this assumption
-             fuel_mix_eq=0., # TODO: This can be ignored 
+             value_added=TCI, # TODO: Verify this assumption
              biodiesel_eq=biodiesel_eq, 
              ethanol_eq=ethanol_eq,
-             elec_use=sum([i.power_utility.consumption for i in self.units]),
-             elec_gen=sum([i.power_utility.production for i in self.units]),
-             op_hours=operating_hours,
              start=self._start)
+        self.exemptions = exemptions
+        self.deductions = deductions
+        self.credits = credits
+        self.refunds = refunds
 
-        #An appropriate way to handle tax credits and refunds is to consider them
-        credits = tax_incentives.calc_all_tax_incentives(df=False, include_federal=self.with_federal_incentives)    
-        credits[credits > tax] = tax
+        taxable_cashflow = taxable_cashflow - (exemptions.sum(axis=1) + deductions.sum(axis=1))
+        taxable_cashflow[taxable_cashflow < 0.] = 0.
+        index = taxable_cashflow > 0.
+        tax[index] = self.income_tax * taxable_cashflow[index]
+        maximum_incentives = credits.sum(axis=1) + refunds.sum(axis=1)
+        index = maximum_incentives > tax
+        maximum_incentives[index] = tax[index]
+        incentives[:] = maximum_incentives
+   
+if __name__ == '__main__':
+    IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
+    tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
+    tea.incentive_numbers = tuple(range(1, 20))
+    tea.ethanol_product = lc.ethanol
+    tea.ethanol_group = lc.ethanol_production_units
+    tea.biodiesel_group = lc.biodiesel_production_units
+    tea.BT = lc.BT
+    IRR_with_incentives = tea.solve_IRR()
+    df = tea.get_cashflow_table()
+    print(f"{IRR_without_incentives=}")
+    print(f"{IRR_with_incentives=}")
 
-        #This is an appropriate way to handle 
-        incentives[:] = credits
-        
-tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
 
-folder = os.path.dirname(__file__)
-available_states = ('AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-                    'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 
-                    'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH',
-                    'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-                    'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY')
-
-prices_by_state_with_federal = {}
-prices_by_state_without_federal = {}
+# folder = os.path.dirname(__file__)
+# xlfile = os.path.join(folder, 'State_Parameters.xlsx')
+# nm_data = pd.read_excel(xlfile, index_col=[0])
 
 
-for state in available_states:
-            bst.PowerUtility.price = nm_data.loc['rate',state]
-            tea.state = state
-            tea.with_federal_incentives = True
-            prices_by_state_with_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
-            prices_by_state_with_federal[state] *= 2.98668849 # USD/gal
-            tea.with_federal_incentives = False
-            prices_by_state_without_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
-            prices_by_state_without_federal[state] *= 2.98668849 # USD/gal
+# folder = os.path.dirname(__file__)
+
+# available_states = ('AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+#                     'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 
+#                     'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH',
+#                     'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+#                     'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY')
+
+# prices_by_state_with_federal = {}
+# prices_by_state_without_federal = {}
+
+
+# for state in available_states:
+#             bst.PowerUtility.price = nm_data.loc['rate',state]
+#             tea.state = state
+#             tea.with_federal_incentives = True
+#             prices_by_state_with_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
+#             prices_by_state_with_federal[state] *= 2.98668849 # USD/gal
+#             tea.with_federal_incentives = False
+#             prices_by_state_without_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
+#             prices_by_state_without_federal[state] *= 2.98668849 # USD/gal
             
 
 # for kind in ("with federal", "without federal"):
