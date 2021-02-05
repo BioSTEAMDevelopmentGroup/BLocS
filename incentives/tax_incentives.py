@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+<<<<<<< HEAD
 Created on Mon Jan 25 10:45:44 2021
+=======
+Tax Incentives
+Authors: Dalton Stewart (dalton.w.stewart@gmail.com)
+         Yoel Cortes-Pena (yoelcortes@gmail.com)
 
-@author: daltonstewart
 """
+
 import numpy as np
 import pandas as pd
 from inspect import signature
