@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Tax Incentives
-Authors: Dalton Stewart, Yoel Cortes-Pena
+Authors: Dalton Stewart (dalton.w.stewart@gmail.com)
+         Yoel Cortes-Pena (yoelcortes@gmail.com)
+
 """
 
 # %%
