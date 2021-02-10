@@ -90,10 +90,10 @@ def fixed_incentives(durations,
 def determine_exemption_amount(incentive_number,
                                plant_years,
                                value_added=0.,
-                               property_tax_assessed=0.,
+                               property_taxable_value=0.,
                                biodiesel_eq=0.,
                                ethanol_eq=0.,
-                               fuel_tax_assessed=0.,
+                               fuel_taxable_value=0.,
                                variable_incentive_frac_at_startup=1.,
                                start=0,
                                df=False):
@@ -109,14 +109,14 @@ def determine_exemption_amount(incentive_number,
     value_added : float, optional
         Value added to property [$]. Presumably similar to TCI. 
         TODO: look for more specifics.
-    property_tax_assessed : float, optional
-        Property tax per year [$/yr].
+    property_taxable_value : float, optional 
+        Value of property on which property tax can be assessed [$/yr].
     biodiesel_eq : float, optional
         Value of equipment used for producing biodiesel [$].
     ethanol_eq : float, optional
         Value of equipment used for producing ethanol [$].
-    fuel_tax_assessed : float, optional
-        Fuel tax per year [$/yr].
+    fuel_taxable_value : float, optional
+        Amount of fuel on which fuel tax can be assessed [gal/year].
     variable_incentive_frac_at_startup : float
         Fraction of incentive at the startup year.
     start : int, optional
@@ -129,37 +129,52 @@ def determine_exemption_amount(incentive_number,
     if incentive_number == 1:
         exemption_amount = value_added #value added to property, assume TCI
         duration = 20
+        if exemption_amount <= property_taxable_value:
+            exemption_amount = exemption_amount
+        else:
+            exemption_amount = property_taxable_value
         cashflow = fixed_incentives([duration],[exemption_amount],
                                      plant_years, start)
     
     elif incentive_number == 2:
-        exemption_amount = property_tax_assessed #entire amount of state property tax assessed
+        exemption_amount = property_taxable_value #entire amount of state property taxable value
         duration = 10
+        #no if statement here bc the exemption is the whole property taxable value
         cashflow = fixed_incentives([duration],[exemption_amount],
                                      plant_years, start)
         
     elif incentive_number == 3:
         exemption_amount = biodiesel_eq
         duration = plant_years
+        if exemption_amount <= property_taxable_value:
+            exemption_amount = exemption_amount
+        else:
+            exemption_amount = property_taxable_value
         cashflow = fixed_incentives([duration],[exemption_amount],
                                      plant_years, start)
         
     elif incentive_number == 4:
         exemption_amount = ethanol_eq
         duration = 10
+        if exemption_amount <= property_taxable_value:
+            exemption_amount = exemption_amount
+        else:
+            exemption_amount = property_taxable_value
         cashflow = fixed_incentives([duration],[exemption_amount],
                                      plant_years, start)
         
     elif incentive_number == 5:
-        exemption_amount = fuel_tax_assessed #entire amount of state fuel tax assessed
+        exemption_amount = fuel_taxable_value #entire amount of state fuel taxable value
         duration = plant_years
+        #no if statement here bc the exemption is the whole fuel taxable value
         cashflow = variable_incentives([duration],[exemption_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
         
     elif incentive_number == 6:
-        exemption_amount = property_tax_assessed #entire amount of state property tax assessed
+        exemption_amount = property_taxable_value #entire amount of state property taxable value
         duration = plant_years
+        #no if statement here bc the exemption is the whole property taxable value
         cashflow = fixed_incentives([duration],[exemption_amount],
                                      plant_years, start)
         
@@ -185,6 +200,7 @@ def determine_exemption_amount(incentive_number,
 def determine_deduction_amount(incentive_number,
                                plant_years,
                                NM_value=0.,
+                               sales_taxable_value=0.,
                                start=0,
                                df=False):
     """
@@ -201,6 +217,8 @@ def determine_deduction_amount(incentive_number,
         storage facility, feedstock processing or drying equipment, feedstock 
         trailer or interconnection transformer, and the value of biomass 
         materials [$/yr]
+    sales_taxable_value : 
+        Value of purchases on which sales tax can be assessed [$/yr]
     start : int, optional
         Year incentive starts. Defaults to 0.
     df : bool, optional
@@ -209,16 +227,24 @@ def determine_deduction_amount(incentive_number,
     """
     
     if incentive_number == 7:
-        deduction_amount = NM_value #TODO come up with formula
+        deduction_amount = NM_value 
         duration = plant_years
+        if deduction_amount <= sales_taxable_value:
+            deduction_amount = deduction_amount
+        else:
+            deduction_amount = sales_taxable_value
         cashflow = fixed_incentives([duration],[deduction_amount],
                                      plant_years, start)
         
     #
     #TODO ask Yoel, I'm not sure how this incentive would interact with the existing depreciation calculations
     # elif incentive_number == 26:
-    # deduction_amount = 0.5*adj_basis #adjusted basis of property, formula varies
+    # deduction_amount = 0.5*adj_basis #adjusted basis of property, formula varies; DON'T MULTIPLY BY TAX RATE
     # duration = 1
+    # if deduction_amount <= property_taxable_value:
+    #         deduction_amount = deduction_amount
+    #     else:
+    #         deduction_amount = property_taxable_value
     # cashflow = fixed_incentives([duration],[deduction_amount],
     #                                  plant_years, start)
     #
@@ -234,9 +260,12 @@ def determine_credit_amount(incentive_number,
                             wages=0.,
                             TCI=0.,
                             ethanol=0.,
-                            income_tax_assessed=0.,
+                            fed_income_tax_assessed=0.,
                             elec_eq=0.,
                             jobs_50=0.,
+                            utility_tax_assessed=0.,
+                            state_income_tax_assessed=0.,
+                            property_tax_assessed=0.,
                             variable_incentive_frac_at_startup=1.,
                             start=0,
                             df=False):
@@ -255,12 +284,18 @@ def determine_credit_amount(incentive_number,
         Total capital investment [$].
     ethanol :
         Volume of ethanol produced [gal/yr].
-    income_tax_assessed : float, optional 
-        Income tax per year [$/yr].
+    fed_income_tax_assessed : float, optional 
+        Federal income tax per year [$/yr].
     elec_eq : float, optional 
         Value of equipment used for producing electricity [$]/
     jobs_50 : float, optional 
         Number of jobs paying more than 50,000 USD/yr.
+    utility_tax_assessed
+        Utility tax per year [$/yr]
+    state_income_tax_assessed 
+        State income tax per year [$/yr]
+    property_tax_assessed
+        Property tax per year [$/yr]
     variable_incentive_frac_at_startup : float
         Fraction of incentive at the startup year.
     start : int, optional
@@ -271,60 +306,85 @@ def determine_credit_amount(incentive_number,
     """
     
     if incentive_number == 8:
-        credit_amount = 0.03*wages
+        credit_amount = 0.03*wages #DON'T MULTIPLY BY TAX RATE
         duration = 10
+        if credit_amount <= utility_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = utility_tax_assessed
         cashflow = variable_incentives([duration],[credit_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
         
     elif incentive_number == 9:
-        credit_amount = 0.015*TCI #actually 'qualified capital investment', assume TCI
+        credit_amount = 0.015*TCI #actually 'qualified capital investment', assume TCI; DON'T MULTIPLY BY TAX RATE
         duration = 10
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 10:
-        credit = 0.03*TCI #actually 'qualified investment', assume TCI
+        credit = 0.03*TCI #actually 'qualified investment', assume TCI; DON'T MULTIPLY BY TAX RATE
         if credit <= 750000:
             credit_amount = credit
         else:
             credit_amount = 750000
         duration = 22
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 11:
-        credit = 76100*(0.2/76000)*ethanol # Fuel content of ethanol is 76100 btu/gal
+        credit = 76100*(0.2/76000)*ethanol # Fuel content of ethanol is 76100 btu/gal; DON'T MULTIPLY BY TAX RATE
         if credit <= 3000000:
             credit_amount = credit
         else:
             credit_amount = 3000000
         duration = 5
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = variable_incentives([duration],[credit_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
         
     elif incentive_number == 12:
-        total_credit = 0.05*TCI #actually just 'a percentage of qualifying investment', assume 5% of TCI, no max specified but may be inaccurate
+        total_credit = 0.05*TCI #actually just 'a percentage of qualifying investment', assume 5% of TCI, no max specified but may be inaccurate; DON'T MULTIPLY BY TAX RATE
         duration = 5
         credit_amount = total_credit/duration
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 13:
-        credit_amount = income_tax_assessed #entire amount of state income tax assessed
+        credit_amount = state_income_tax_assessed #entire amount of state income tax assessed; DON'T MULTIPLY BY TAX RATE
         duration = 15
+        #no if statement here bc the credit amount is the entire amount of state income tax assessed
         cashflow = variable_incentives([duration],[credit_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
          
     elif incentive_number == 14:
-        credit = 1 * ethanol # 1 $/gal ethanol * gal ethanol
+        credit = 1 * ethanol # 1 $/gal ethanol * gal ethanol; DON'T MULTIPLY BY TAX RATE
         if credit <= 5000000:
             credit_amount = credit
         else:
             credit_amount = 5000000
         duration = plant_years
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = variable_incentives([duration],[credit_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
@@ -342,51 +402,75 @@ def determine_credit_amount(incentive_number,
             credit_amount = credit
         else:
             credit_amount = 1000000
-        #there are other provisions to the incentive but they are more difficult to model so I will assume the maximum value is achieved via these provisions
+        #there are other provisions to the incentive but they are more difficult to model so I will assume the maximum value is achieved via these provisions; DON'T MULTIPLY BY TAX RATE
         duration = 2 #estimated, incentive description is not clear
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 16:
-        total_credit = 0.25*TCI #actually cost of constructing and equipping facility
+        total_credit = 0.25*TCI #actually cost of constructing and equipping facility; DON'T MULTIPLY BY TAX RATE
         duration = 7
         credit_amount = total_credit/duration #credit must be taken in equal installments over duration
+        if credit_amount <= property_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = property_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
             
     elif incentive_number == 17:
-        credit = 0.25*elec_eq
+        credit = 0.25*elec_eq #DON'T MULTIPLY BY TAX RATE
         if credit <= 650000:
             credit_amount = credit
         else:
             credit_amount = 650000
         duration = 15
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 18:
-        credit_amount  = 0.75*income_tax_assessed
+        credit_amount  = 0.75*state_income_tax_assessed #DON'T MULTIPLY BY TAX RATE
         duration = 20
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 19:
-        credit = 500*jobs_50 #number of jobs paying 50k+/year
+        credit = 500*jobs_50 #number of jobs paying 50k+/year; DON'T MULTIPLY BY TAX RATE
         if credit <= 175000:
             credit_amount = credit
         else:
             credit_amount = 175000
         duration = 5
+        if credit_amount <= state_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = state_income_tax_assessed
         cashflow = fixed_incentives([duration],[credit_amount],
                                      plant_years, start)
         
     elif incentive_number == 20:
         if ethanol <= 15000000:
-            credit_amount = 1.01*ethanol
+            credit_amount = 1.01*ethanol #DON'T MULTIPLY BY TAX RATE
         else:
             credit_amount = 1.01*15000000
-            duration = plant_years
-            cashflow = variable_incentives([duration],[credit_amount], 
+        duration = plant_years
+        if credit_amount <= fed_income_tax_assessed:
+            credit_amount = credit_amount
+        else:
+            credit_amount = fed_income_tax_assessed    
+        cashflow = variable_incentives([duration],[credit_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
         
@@ -401,6 +485,9 @@ def determine_refund_amount(incentive_number,
                             IA_value=0.,
                             building_mats=0.,
                             ethanol=0.,
+                            sales_tax_rate=0.,
+                            sales_tax_assessed=0.,
+                            state_income_tax_assessed=0.,
                             variable_incentive_frac_at_startup=1.,
                             start=0,
                             df=False):
@@ -417,6 +504,14 @@ def determine_refund_amount(incentive_number,
         Fees paid to (sub)contractors + cost of racks, shelving, conveyors [$].
     building_mats : float, optional
         Cost of building and construction materials [$].
+    ethanol
+        Volume of ethanol produced per year [gal/yr]
+    sales_tax_rate
+        State sales tax rate [decimal], i.e. for 6% enter 0.06
+    sales_tax_assessed
+        Sales tax per year [$/yr]
+    state_income_tax_assessed
+        State income tax per year [$/yr]
     start : int, optional
         Year incentive starts. Defaults to 0.
     df : bool, optional
@@ -424,24 +519,36 @@ def determine_refund_amount(incentive_number,
         
     """
     if incentive_number == 21:
-        refund_amount = IA_value #fees paid to (sub)contractors + cost of racks, shelving, conveyors
+        refund_amount = IA_value * sales_tax_rate #fees paid to (sub)contractors + cost of racks, shelving, conveyors
         duration = 1
+        if refund_amount <= sales_tax_assessed:
+            refund_amount = refund_amount
+        else:
+            refund_amount = sales_tax_assessed    
         cashflow = fixed_incentives([duration],[refund_amount],
                                      plant_years, start)
         
     elif incentive_number == 22:
-        refund_amount = building_mats #cost of building and construction materials
+        refund_amount = building_mats * sales_tax_rate #cost of building and construction materials
         duration = 1
+        if refund_amount <= sales_tax_assessed:
+            refund_amount = refund_amount
+        else:
+            refund_amount = sales_tax_assessed 
         cashflow = fixed_incentives([duration],[refund_amount],
                                      plant_years, start)
         
     elif incentive_number == 23:
-        refund = 0.2*ethanol
+        refund = 0.2*ethanol #DON'T MULTIPLY BY TAX RATE
         if refund <= 6e6:
             refund_amount = refund
         else:
             refund_amount = 6e6
         duration = plant_years
+        if refund_amount <= state_income_tax_assessed:
+            refund_amount = refund_amount
+        else:
+            refund_amount = state_income_tax_assessed
         cashflow = variable_incentives([duration],[refund_amount], 
                                         plant_years, variable_incentive_frac_at_startup, 
                                         start)
