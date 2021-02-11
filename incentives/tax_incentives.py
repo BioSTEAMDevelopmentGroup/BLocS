@@ -87,10 +87,27 @@ def fixed_incentives(durations,
         cashflow[start: durations[i], i] = incentives[i] 
     return cashflow
 
+P_tax_value = np.zeros((20,)) #TODO
+P_tax_value[:] = 2e6
+fuel_tax_value = np.zeros((20,))#TODO
+fuel_tax_value[:] = 330000
+
+S_tax_value = np.zeros((20,))#TODO
+S_tax_value[1:2] = 1e6
+
+U_tax_assessed = np.zeros((20,))#TODO
+U_tax_assessed[:] = 500000
+SI_tax_assessed = np.zeros((20,))#TODO
+SI_tax_assessed[:] = 3e6
+SP_tax_assessed = np.zeros((20,))#TODO
+SP_tax_assessed[:] = 1e6
+eth_arr = np.zeros((20,))#TODO
+eth_arr[:] = 100e6
+
 def determine_exemption_amount(incentive_number,
                                plant_years,
-                               value_added=0.,
                                property_taxable_value=0.,
+                               value_added=0.,
                                biodiesel_eq=0.,
                                ethanol_eq=0.,
                                fuel_taxable_value=0.,
@@ -109,13 +126,13 @@ def determine_exemption_amount(incentive_number,
     value_added : float, optional
         Value added to property [$]. Presumably similar to TCI. 
         TODO: look for more specifics.
-    property_taxable_value : float, optional 
+    property_taxable_value : array, optional 
         Value of property on which property tax can be assessed [$/yr].
     biodiesel_eq : float, optional
         Value of equipment used for producing biodiesel [$].
     ethanol_eq : float, optional
         Value of equipment used for producing ethanol [$].
-    fuel_taxable_value : float, optional
+    fuel_taxable_value : array, optional
         Amount of fuel on which fuel tax can be assessed [gal/year].
     variable_incentive_frac_at_startup : float
         Fraction of incentive at the startup year.
@@ -126,76 +143,46 @@ def determine_exemption_amount(incentive_number,
     
     """
     
+    EXEMPTION=np.zeros((plant_years,))
+    
     if incentive_number == 1:
         exemption_amount = value_added #value added to property, assume TCI
         duration = 20
-        if exemption_amount <= property_taxable_value:
-            exemption_amount = exemption_amount
-        else:
-            exemption_amount = property_taxable_value
-        cashflow = fixed_incentives([duration],[exemption_amount],
-                                     plant_years, start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + exemption_amount
+        EXEMPTION = np.where(EXEMPTION>property_taxable_value,property_taxable_value,EXEMPTION)
     
     elif incentive_number == 2:
-        exemption_amount = property_taxable_value #entire amount of state property taxable value
         duration = 10
-        #no if statement here bc the exemption is the whole property taxable value
-        cashflow = fixed_incentives([duration],[exemption_amount],
-                                     plant_years, start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + property_taxable_value[start:start+duration] #entire amount of state property taxable value
+        #no > statement here bc the exempt amount is the entire amount of state property tax assessed
         
     elif incentive_number == 3:
         exemption_amount = biodiesel_eq
         duration = plant_years
-        if exemption_amount <= property_taxable_value:
-            exemption_amount = exemption_amount
-        else:
-            exemption_amount = property_taxable_value
-        cashflow = fixed_incentives([duration],[exemption_amount],
-                                     plant_years, start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + exemption_amount
+        EXEMPTION = np.where(EXEMPTION>property_taxable_value,property_taxable_value,EXEMPTION)
         
     elif incentive_number == 4:
         exemption_amount = ethanol_eq
         duration = 10
-        if exemption_amount <= property_taxable_value:
-            exemption_amount = exemption_amount
-        else:
-            exemption_amount = property_taxable_value
-        cashflow = fixed_incentives([duration],[exemption_amount],
-                                     plant_years, start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + exemption_amount
+        EXEMPTION = np.where(EXEMPTION>property_taxable_value,property_taxable_value,EXEMPTION)
         
     elif incentive_number == 5:
-        exemption_amount = fuel_taxable_value #entire amount of state fuel taxable value
         duration = plant_years
-        #no if statement here bc the exemption is the whole fuel taxable value
-        cashflow = variable_incentives([duration],[exemption_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + fuel_taxable_value[start:start+duration] #entire amount of state fuel taxable value
+        #no > statement here bc the exempt amount is the entire amount of state fuel tax assessed
         
     elif incentive_number == 6:
-        exemption_amount = property_taxable_value #entire amount of state property taxable value
         duration = plant_years
-        #no if statement here bc the exemption is the whole property taxable value
-        cashflow = fixed_incentives([duration],[exemption_amount],
-                                     plant_years, start)
+        EXEMPTION[start:start+duration] = EXEMPTION[start:start+duration] + property_taxable_value[start:start+duration] #entire amount of state property taxable value
+        #no > statement here bc the exempt amount is the entire amount of state property tax assessed
         
-    #
-    # elif incentive_number == 24:
-    #     exemption_amount = air_eq #value of property used for air quality improvement project
-    #     duration = 1
-    #     cashflow = fixed_incentives([duration],[exemption_amount],
-    #                                  plant_years, start)
-        
-    # elif incentive_number == 25:
-    #     exemption_amount = blending_eq #value of equipment used for storing and blending petroleum fuel with biofuel (equipment used for denaturing ethanol not eligible)
-    #     duration = 10
-    #     cashflow = fixed_incentives([duration],[exemption_amount],
-    #                                  plant_years, start)
-    #
     else: 
-        cashflow = fixed_incentives([plant_years], [0.], plant_years, start)
+        EXEMPTION[:] = 0
         
-    if df: cashflow = pd.DataFrame(cashflow, columns=['Tax exemption'])
-    return cashflow
+    if df: EXEMPTION = pd.DataFrame(EXEMPTION, columns=['Tax exemption'])
+    return EXEMPTION
     
 def determine_deduction_amount(incentive_number,
                                plant_years,
@@ -217,7 +204,7 @@ def determine_deduction_amount(incentive_number,
         storage facility, feedstock processing or drying equipment, feedstock 
         trailer or interconnection transformer, and the value of biomass 
         materials [$/yr]
-    sales_taxable_value : 
+    sales_taxable_value : array
         Value of purchases on which sales tax can be assessed [$/yr]
     start : int, optional
         Year incentive starts. Defaults to 0.
@@ -226,17 +213,16 @@ def determine_deduction_amount(incentive_number,
         
     """
     
+    DEDUCTION=np.zeros((plant_years,))
+    
     if incentive_number == 7:
         deduction_amount = NM_value 
         duration = plant_years
-        if deduction_amount <= sales_taxable_value:
-            deduction_amount = deduction_amount
-        else:
-            deduction_amount = sales_taxable_value
-        cashflow = fixed_incentives([duration],[deduction_amount],
-                                     plant_years, start)
+        DEDUCTION[start:start+duration] = DEDUCTION[start:start+duration] + deduction_amount
+        # DEDUCTION[start:start+duration] = DEDUCTION[start:start+duration] + NM_value[start:start+duration]
+        DEDUCTION = np.where(DEDUCTION>sales_taxable_value,sales_taxable_value,DEDUCTION)
         
-    #
+    #DO NOT DELETE
     #TODO ask Yoel, I'm not sure how this incentive would interact with the existing depreciation calculations
     # elif incentive_number == 26:
     # deduction_amount = 0.5*adj_basis #adjusted basis of property, formula varies; DON'T MULTIPLY BY TAX RATE
@@ -247,13 +233,13 @@ def determine_deduction_amount(incentive_number,
     #         deduction_amount = property_taxable_value
     # cashflow = fixed_incentives([duration],[deduction_amount],
     #                                  plant_years, start)
-    #
+    #DO NOT DELETE
         
     else: 
-        cashflow = fixed_incentives([plant_years], [0.], plant_years, start)
+        DEDUCTION[:] = 0
         
-    if df: cashflow = pd.DataFrame(cashflow, columns=['Tax deduction'])
-    return cashflow
+    if df: DEDUCTION = pd.DataFrame(DEDUCTION, columns=['Tax deduction'])
+    return DEDUCTION
         
 def determine_credit_amount(incentive_number,
                             plant_years,
@@ -282,7 +268,7 @@ def determine_credit_amount(incentive_number,
         Employee wages [$/yr].
     TCI : float, optional
         Total capital investment [$].
-    ethanol :
+    ethanol : array
         Volume of ethanol produced [gal/yr].
     fed_income_tax_assessed : float, optional 
         Federal income tax per year [$/yr].
@@ -305,180 +291,120 @@ def determine_credit_amount(incentive_number,
         
     """
     
+    CREDIT = np.zeros((plant_years,))
+    
     if incentive_number == 8:
         credit_amount = 0.03*wages #DON'T MULTIPLY BY TAX RATE
         duration = 10
-        if credit_amount <= utility_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = utility_tax_assessed
-        cashflow = variable_incentives([duration],[credit_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        # CREDIT[start:start+duration] = CREDIT[start:start+duration] + 0.03*wages[start:start+duration]
+        CREDIT = np.where(CREDIT>utility_tax_assessed,utility_tax_assessed,CREDIT)
         
     elif incentive_number == 9:
         credit_amount = 0.015*TCI #actually 'qualified capital investment', assume TCI; DON'T MULTIPLY BY TAX RATE
         duration = 10
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 10:
-        credit = 0.03*TCI #actually 'qualified investment', assume TCI; DON'T MULTIPLY BY TAX RATE
-        if credit <= 750000:
-            credit_amount = credit
-        else:
-            credit_amount = 750000
+        credit_amount = 0.03*TCI #actually 'qualified investment', assume TCI; DON'T MULTIPLY BY TAX RATE
         duration = 22
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT[CREDIT>750000] = 750000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 11:
-        credit = 76100*(0.2/76000)*ethanol # Fuel content of ethanol is 76100 btu/gal; DON'T MULTIPLY BY TAX RATE
-        if credit <= 3000000:
-            credit_amount = credit
-        else:
-            credit_amount = 3000000
+        # credit = 76100*(0.2/76000)*ethanol # Fuel content of ethanol is 76100 btu/gal; DON'T MULTIPLY BY TAX RATE
         duration = 5
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = variable_incentives([duration],[credit_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        # CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + (76100*(0.2/76000))*ethanol[start:start+duration]
+        CREDIT[CREDIT>3000000] = 3000000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 12:
         total_credit = 0.05*TCI #actually just 'a percentage of qualifying investment', assume 5% of TCI, no max specified but may be inaccurate; DON'T MULTIPLY BY TAX RATE
         duration = 5
         credit_amount = total_credit/duration
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 13:
-        credit_amount = state_income_tax_assessed #entire amount of state income tax assessed; DON'T MULTIPLY BY TAX RATE
         duration = 15
-        #no if statement here bc the credit amount is the entire amount of state income tax assessed
-        cashflow = variable_incentives([duration],[credit_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + state_income_tax_assessed[start:start+duration] #entire amount of state income tax assessed
+        #no > statement here bc the credit amount is the entire amount of state income tax assessed
          
     elif incentive_number == 14:
-        credit = 1 * ethanol # 1 $/gal ethanol * gal ethanol; DON'T MULTIPLY BY TAX RATE
-        if credit <= 5000000:
-            credit_amount = credit
-        else:
-            credit_amount = 5000000
+        # credit = 1 * ethanol # 1 $/gal ethanol * gal ethanol; DON'T MULTIPLY BY TAX RATE
+        # if credit <= 5000000:
+        #     credit_amount = credit
+        # else:
+        #     credit_amount = 5000000
         duration = plant_years
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = variable_incentives([duration],[credit_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + 1*ethanol[start:start+duration] #1 $/gal ethanol * gal ethanol; DON'T MULTIPLY BY TAX RATE
+        CREDIT[CREDIT>5000000] = 5000000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 15:
         if TCI < 100000:
-            credit = 0
+            credit_amount = 0
         if 100000<=TCI<=300000:
-            credit = 0.07*TCI
+            credit_amount = 0.07*TCI
         elif 300000<TCI<=1000000:
-            credit = 0.14*TCI
+            credit_amount = 0.14*TCI
         elif TCI>1000000:
-            credit = 0.18*TCI
-        if credit <= 1000000:
-            credit_amount = credit
-        else:
-            credit_amount = 1000000
+            credit_amount = 0.18*TCI
         #there are other provisions to the incentive but they are more difficult to model so I will assume the maximum value is achieved via these provisions; DON'T MULTIPLY BY TAX RATE
         duration = 2 #estimated, incentive description is not clear
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT[CREDIT>1000000] = 1000000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 16:
         total_credit = 0.25*TCI #actually cost of constructing and equipping facility; DON'T MULTIPLY BY TAX RATE
         duration = 7
         credit_amount = total_credit/duration #credit must be taken in equal installments over duration
-        if credit_amount <= property_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = property_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT = np.where(CREDIT>property_tax_assessed,property_tax_assessed,CREDIT)
             
     elif incentive_number == 17:
-        credit = 0.25*elec_eq #DON'T MULTIPLY BY TAX RATE
-        if credit <= 650000:
-            credit_amount = credit
-        else:
-            credit_amount = 650000
+        credit_amount = 0.25*elec_eq #DON'T MULTIPLY BY TAX RATE
+        # if credit <= 650000:
+        #     credit_amount = credit
+        # else:
+        #     credit_amount = 650000
         duration = 15
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT[CREDIT>650000] = 650000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 18:
-        credit_amount  = 0.75*state_income_tax_assessed #DON'T MULTIPLY BY TAX RATE
+        # credit_amount  = 0.75*state_income_tax_assessed #DON'T MULTIPLY BY TAX RATE
         duration = 20
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + 0.75*state_income_tax_assessed[start:start+duration]
+        #no > statement here bc the credit amount depends on amount of state income tax assessed
         
     elif incentive_number == 19:
-        credit = 500*jobs_50 #number of jobs paying 50k+/year; DON'T MULTIPLY BY TAX RATE
-        if credit <= 175000:
-            credit_amount = credit
-        else:
-            credit_amount = 175000
+        credit_amount = 500*jobs_50 #number of jobs paying 50k+/year; DON'T MULTIPLY BY TAX RATE
         duration = 5
-        if credit_amount <= state_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = state_income_tax_assessed
-        cashflow = fixed_incentives([duration],[credit_amount],
-                                     plant_years, start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + credit_amount
+        CREDIT[CREDIT>175000] = 175000
+        CREDIT = np.where(CREDIT>state_income_tax_assessed,state_income_tax_assessed,CREDIT)
         
     elif incentive_number == 20:
-        if ethanol <= 15000000:
-            credit_amount = 1.01*ethanol #DON'T MULTIPLY BY TAX RATE
-        else:
-            credit_amount = 1.01*15000000
+        # if ethanol <= 15000000:
+        #     credit_amount = 1.01*ethanol #DON'T MULTIPLY BY TAX RATE
+        # else:
+        #     credit_amount = 1.01*15000000
         duration = plant_years
-        if credit_amount <= fed_income_tax_assessed:
-            credit_amount = credit_amount
-        else:
-            credit_amount = fed_income_tax_assessed    
-        cashflow = variable_incentives([duration],[credit_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        CREDIT[start:start+duration] = CREDIT[start:start+duration] + 1.01*ethanol[start:start+duration]
+        CREDIT[CREDIT>(1.01*15000000)] = (1.01*15000000)
+        CREDIT = np.where(CREDIT>fed_income_tax_assessed,fed_income_tax_assessed,CREDIT)
         
     else: 
-        cashflow = fixed_incentives([plant_years], [0.], plant_years, start)
+        CREDIT[:] = 0
         
-    if df: cashflow = pd.DataFrame(cashflow, columns=['Tax credit'])
-    return cashflow    
+    if df: CREDIT = pd.DataFrame(CREDIT, columns=['Tax credit'])
+    return CREDIT   
 
 def determine_refund_amount(incentive_number,
                             plant_years,
@@ -518,46 +444,33 @@ def determine_refund_amount(incentive_number,
         Whether to return a DataFrame or an array.
         
     """
+  
+    REFUND = np.zeros((plant_years,))
+    
     if incentive_number == 21:
         refund_amount = IA_value * sales_tax_rate #fees paid to (sub)contractors + cost of racks, shelving, conveyors
         duration = 1
-        if refund_amount <= sales_tax_assessed:
-            refund_amount = refund_amount
-        else:
-            refund_amount = sales_tax_assessed    
-        cashflow = fixed_incentives([duration],[refund_amount],
-                                     plant_years, start)
+        REFUND[start:start+duration] = REFUND[start:start+duration] + refund_amount
+        REFUND = np.where(REFUND>sales_tax_assessed,sales_tax_assessed,REFUND)
         
     elif incentive_number == 22:
         refund_amount = building_mats * sales_tax_rate #cost of building and construction materials
         duration = 1
-        if refund_amount <= sales_tax_assessed:
-            refund_amount = refund_amount
-        else:
-            refund_amount = sales_tax_assessed 
-        cashflow = fixed_incentives([duration],[refund_amount],
-                                     plant_years, start)
+        REFUND[start:start+duration] = REFUND[start:start+duration] + refund_amount
+        REFUND = np.where(REFUND>sales_tax_assessed,sales_tax_assessed,REFUND)
         
     elif incentive_number == 23:
-        refund = 0.2*ethanol #DON'T MULTIPLY BY TAX RATE
-        if refund <= 6e6:
-            refund_amount = refund
-        else:
-            refund_amount = 6e6
+        # refund = 0.2*ethanol #DON'T MULTIPLY BY TAX RATE
         duration = plant_years
-        if refund_amount <= state_income_tax_assessed:
-            refund_amount = refund_amount
-        else:
-            refund_amount = state_income_tax_assessed
-        cashflow = variable_incentives([duration],[refund_amount], 
-                                        plant_years, variable_incentive_frac_at_startup, 
-                                        start)
+        REFUND[start:start+duration] = REFUND[start:start+duration] + 0.2*ethanol[start:start+duration]
+        REFUND[REFUND>6e6] = 6e6
+        REFUND = np.where(REFUND>state_income_tax_assessed,state_income_tax_assessed,REFUND)
            
     else: 
-        cashflow = fixed_incentives([plant_years], [0.], plant_years, start)
+        REFUND[:] = 0
         
-    if df: cashflow = pd.DataFrame(cashflow, columns=['Tax refund'])
-    return cashflow
+    if df: REFUND = pd.DataFrame(REFUND, columns=['Tax refund'])
+    return REFUND
         
 def determine_tax_incentives(incentive_numbers,
                              **kwargs):
