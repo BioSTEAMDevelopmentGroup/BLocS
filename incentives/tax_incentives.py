@@ -513,7 +513,7 @@ def determine_tax_incentives(incentive_numbers,
         elif i in REFUNDS: refunds.append(i)
         else: raise ValueError(f"invalid incentive number '{i}'")
     get_kwargs = lambda params: {i: kwargs[i] for i in params if i in kwargs} 
-    exemption_kwargs = get_kwargs(EXCEMPTION_PARAMETERS)
+    exemption_kwargs = get_kwargs(EXEMPTION_PARAMETERS)
     deduction_kwargs = get_kwargs(DEDUCTION_PARAMETERS)
     credit_kwargs = get_kwargs(CREDIT_PARAMETERS)
     refund_kwargs = get_kwargs(REFUND_PARAMETERS)
