@@ -64,8 +64,8 @@ def determine_exemption_amount(incentive_number,
         Incentive type.
     plant_years : int
         Number of years plant will operate.
-    value_added : 1d array, optional
-        Value added to property [$]. Presumably similar to TCI. 
+    value_added : float, optional
+        Value added to property [$]. Presumably similar to FCI. 
         TODO: look for more specifics.
     property_taxable_value : 1d array, optional 
         Value of property on which property tax can be assessed [$/yr].
@@ -84,7 +84,7 @@ def determine_exemption_amount(incentive_number,
     
     if incentive_number == 1:
         if value_added is None or property_taxable_value is None: return excemption
-        excemption_amount = value_added # Value added to property, assume TCI
+        excemption_amount = value_added # Value added to property, assume FCI
         duration = 20
         excemption[start: start + duration] = excemption_amount
         excemption = np.where(excemption > property_taxable_value, 
@@ -198,7 +198,7 @@ def determine_credit_amount(incentive_number,
         Incentive type.
     plant_years : int
         Number of years plant will operate.
-    wages : float, optional
+    wages : 1d array, optional
         Employee wages [$/yr].
     TCI : float, optional
         Total capital investment [$].
@@ -432,8 +432,61 @@ def determine_tax_incentives(incentive_numbers,
     ----------
     incentive_numbers : frozenset[int]
         Incentive types.
-    **kwargs : 
-        Key word arguments to calculate incentives.
+
+    Other parameters
+    ----------------
+    start : int, optional
+        Year incentive starts. Defaults to 0.
+    plant_years : int
+        Number of years plant will operate.
+    value_added : float, optional
+        Value added to property [$]. Presumably similar to FCI. 
+        TODO: look for more specifics.
+    property_taxable_value : 1d array, optional 
+        Value of property on which property tax can be assessed [$/yr].
+    biodiesel_eq : 1d array, optional
+        Value of equipment used for producing biodiesel [$].
+    ethanol_eq : 1d array, optional
+        Value of equipment used for producing ethanol [$].
+    fuel_taxable_value : 1d array, optional
+        Amount of fuel on which fuel tax can be assessed [gal/year].
+    NM_value : 1d array, optional
+        Value of biomass boiler, gasifier, furnace, turbine-generator, 
+        storage facility, feedstock processing or drying equipment, feedstock 
+        trailer or interconnection transformer, and the value of biomass 
+        materials [$/yr]
+    sales_taxable_value : 1d array
+        Value of purchases on which sales tax can be assessed [$/yr]
+    wages : 1d array, optional
+        Employee wages [$/yr].
+    TCI : float, optional
+        Total capital investment [$].
+    ethanol : 1d array
+        Volume of ethanol produced [gal/yr].
+    fed_income_tax_assessed : 1d array, optional 
+        Federal income tax per year [$/yr].
+    elec_eq : 1d array, optional 
+        Value of equipment used for producing electricity [$].
+    jobs_50 : int, optional 
+        Number of jobs paying more than 50,000 USD/yr.
+    utility_tax_assessed : 1d array, optional
+        Utility tax per year [$/yr]
+    state_income_tax_assessed : 1d array, optional
+        State income tax per year [$/yr]
+    property_tax_assessed : 1d array, optional
+        Property tax per year [$/yr]
+    IA_value : 1d array, optional
+        Fees paid to (sub)contractors + cost of racks, shelving, conveyors [$].
+    building_mats : 1d array, optional
+        Cost of building and construction materials [$].
+    ethanol : 1d array, optional
+        Volume of ethanol produced per year [gal/yr]
+    sales_tax_rate : float, optional
+        State sales tax rate [decimal], i.e. for 6% enter 0.06
+    sales_tax_assessed : 1d array, optional
+        Sales tax per year [$/yr]
+    state_income_tax_assessed : 1d array, optional
+        State income tax per year [$/yr]
 
     Raises
     ------

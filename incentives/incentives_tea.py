@@ -34,24 +34,55 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         biodiesel_group = self.biodiesel_group
         ethanol_group = self.ethanol_group
         BT = self.BT
-        ethanol = ethanol_product.get_total_flow('gal/hr') * operating_hours  if ethanol_product else 0.
+        
+        # Ethanol in gal/yr
+        ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  if ethanol_product else 0.
         biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() if biodiesel_group else 0.
         ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost() if ethanol_group else 0.
         elec_eq = self.lang_factor * BT.purchase_cost if BT else 0.
         TCI = self.TCI
+        wages = self.labor_cost
+        FCI = self.FCI
+        startup_VOCfrac = self._startup_VOCfrac
+        startup_FOCfrac = self._startup_FOCfrac
+        construction_schedule = self._construction_schedule
+        taxable_property = FCI
+        start = self._start
+        years = self._years
+        w0 = self._startup_time
+        w1 = 1. - w0
+        plant_years = start + years
+        empty_cashflows = np.zeros(plant_years)        
+        
+        def yearly_flows(x, startup_frac):
+            y = empty_cashflows.copy()
+            y[start] = w0 * startup_frac * x + w1 * x
+            y[start + 1:] = x
+            return y
+        
+        def construction_flow(x):
+            y = empty_cashflows.copy()
+            y[:start] = x * construction_schedule
+            return y
+        
+        wages_arr = yearly_flows(wages, startup_FOCfrac)
+        ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
+        elec_eq_arr = construction_flow(elec_eq)
+        biodiesel_eq_arr = construction_flow(biodiesel_eq)
+        ethanol_eq_arr = construction_flow(ethanol_eq)
+        
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
              self.incentive_numbers,
              plant_years=self._years + self._start, 
-             variable_incentive_frac_at_startup=self.startup_VOCfrac,
-             wages=self.labor_cost, 
-             TCI=TCI, 
-             ethanol=ethanol,
+             wages=wages_arr, 
+             value_added=FCI,
+             TCI=TCI, # TODO: Verify this assumption
+             ethanol=ethanol_arr,
              jobs_50=50, # TODO: This is not explicit in BioSTEAM 
-             elec_eq=elec_eq,
+             elec_eq=elec_eq_arr,
              NM_value=1e6, # TODO: What is this?
-             value_added=TCI, # TODO: Verify this assumption
-             biodiesel_eq=biodiesel_eq, 
-             ethanol_eq=ethanol_eq,
+             biodiesel_eq=biodiesel_eq_arr, 
+             ethanol_eq=ethanol_eq_arr,
              start=self._start)
         self.exemptions = exemptions
         self.deductions = deductions
