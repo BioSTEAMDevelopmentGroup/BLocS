@@ -80,52 +80,52 @@ def determine_exemption_amount(incentive_number,
     
     """
     
-    excemption = np.zeros((plant_years,))
+    exemption = np.zeros((plant_years,))
     
     if incentive_number == 1:
-        if value_added is None or property_taxable_value is None: return excemption
+        if value_added is None or property_taxable_value is None: return exemption
         excemption_amount = value_added # Value added to property, assume FCI
         duration = 20
-        excemption[start: start + duration] = excemption_amount
-        excemption = np.where(excemption > property_taxable_value, 
+        exemption[start: start + duration] = excemption_amount
+        exemption = np.where(exemption > property_taxable_value, 
                               property_taxable_value, 
-                              excemption)
+                              exemption)
     
     elif incentive_number == 2:
-        if property_taxable_value is None: return excemption
+        if property_taxable_value is None: return exemption
         duration = 10
-        excemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
+        exemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
         # Exempt amount is the entire amount of state property tax assessed
         
     elif incentive_number == 3:
-        if biodiesel_eq is None or property_taxable_value is None: return excemption
+        if biodiesel_eq is None or property_taxable_value is None: return exemption
         duration = plant_years
-        excemption[start: start + duration] = biodiesel_eq
-        excemption = np.where(excemption > property_taxable_value,
+        exemption[start: start + duration] = biodiesel_eq
+        exemption = np.where(exemption > property_taxable_value,
                               property_taxable_value, 
-                              excemption)
+                              exemption)
         
     elif incentive_number == 4:
-        if ethanol_eq is None or property_taxable_value is None: return excemption
+        if ethanol_eq is None or property_taxable_value is None: return exemption
         duration = 10
-        excemption[start: start + duration] = ethanol_eq
-        excemption = np.where(excemption > property_taxable_value, 
+        exemption[start: start + duration] = ethanol_eq
+        exemption = np.where(exemption > property_taxable_value, 
                               property_taxable_value, 
-                              excemption)
+                              exemption)
         
     elif incentive_number == 5:
-        if fuel_taxable_value is None: return excemption
+        if fuel_taxable_value is None: return exemption
         duration = plant_years
-        excemption[start: start + duration] = fuel_taxable_value[start: start + duration] #entire amount of state fuel taxable value
+        exemption[start: start + duration] = fuel_taxable_value[start: start + duration] #entire amount of state fuel taxable value
         # Exempt amount is the entire amount of state fuel tax assessed
         
     elif incentive_number == 6:
-        if property_taxable_value is None: return excemption
+        if property_taxable_value is None: return exemption
         duration = plant_years
-        excemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
+        exemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
         # Exempt amount is the entire amount of state property tax assessed
         
-    return excemption
+    return exemption
     
 def determine_deduction_amount(incentive_number,
                                plant_years,
@@ -532,7 +532,7 @@ def determine_tax_incentives(incentive_numbers,
     return exemptions, deductions, credits, refunds
 
 get_incentive_parameters = lambda f: tuple(signature(f).parameters)[1:]
-EXCEMPTION_PARAMETERS = get_incentive_parameters(determine_exemption_amount)
+EXEMPTION_PARAMETERS = get_incentive_parameters(determine_exemption_amount)
 DEDUCTION_PARAMETERS = get_incentive_parameters(determine_deduction_amount)
 CREDIT_PARAMETERS = get_incentive_parameters(determine_credit_amount)
 REFUND_PARAMETERS = get_incentive_parameters(determine_refund_amount)
