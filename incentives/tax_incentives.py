@@ -50,10 +50,12 @@ REFUNDS = set(range(21, 24))
 def determine_exemption_amount(incentive_number,
                                plant_years,
                                property_taxable_value=None,
+                               property_tax_rate=None,
                                value_added=None,
                                biodiesel_eq=None,
                                ethanol_eq=None,
                                fuel_taxable_value=None,
+                               fuel_tax_rate=None,
                                start=0):
     """
     Return 1d array of tax exemptions per year.
@@ -84,18 +86,20 @@ def determine_exemption_amount(incentive_number,
     
     if incentive_number == 1:
         if value_added is None or property_taxable_value is None: return exemption
-        excemption_amount = value_added # Value added to property, assume FCI
+        exemption_amount = value_added # Value added to property, assume FCI
         duration = 20
-        exemption[start: start + duration] = excemption_amount
+        exemption[start: start + duration] = exemption_amount
         exemption = np.where(exemption > property_taxable_value, 
                               property_taxable_value, 
                               exemption)
+        exemption *= property_tax_rate
     
     elif incentive_number == 2:
         if property_taxable_value is None: return exemption
         duration = 10
         exemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
         # Exempt amount is the entire amount of state property tax assessed
+        exemption *= property_tax_rate
         
     elif incentive_number == 3:
         if biodiesel_eq is None or property_taxable_value is None: return exemption
@@ -104,6 +108,7 @@ def determine_exemption_amount(incentive_number,
         exemption = np.where(exemption > property_taxable_value,
                               property_taxable_value, 
                               exemption)
+        exemption *= property_tax_rate
         
     elif incentive_number == 4:
         if ethanol_eq is None or property_taxable_value is None: return exemption
@@ -112,18 +117,21 @@ def determine_exemption_amount(incentive_number,
         exemption = np.where(exemption > property_taxable_value, 
                               property_taxable_value, 
                               exemption)
+        exemption *= property_tax_rate
         
     elif incentive_number == 5:
         if fuel_taxable_value is None: return exemption
         duration = plant_years
         exemption[start: start + duration] = fuel_taxable_value[start: start + duration] #entire amount of state fuel taxable value
         # Exempt amount is the entire amount of state fuel tax assessed
+        exemption *= fuel_tax_rate
         
     elif incentive_number == 6:
         if property_taxable_value is None: return exemption
         duration = plant_years
         exemption[start: start + duration] = property_taxable_value[start: start + duration] #entire amount of state property taxable value
         # Exempt amount is the entire amount of state property tax assessed
+        exemption *= property_tax_rate
         
     return exemption
     
@@ -131,6 +139,7 @@ def determine_deduction_amount(incentive_number,
                                plant_years,
                                NM_value=None,
                                sales_taxable_value=None,
+                               sales_tax_rate=None,
                                start=0):
     """
     Return 1d array of tax deductions per year.
@@ -161,6 +170,7 @@ def determine_deduction_amount(incentive_number,
         deduction = np.where(deduction > sales_taxable_value,
                              sales_taxable_value,
                              deduction)
+        deduction *= sales_tax_rate
         
     #DO NOT DELETE
     #TODO ask Yoel, I'm not sure how this incentive would interact with the existing depreciation calculations
@@ -425,7 +435,7 @@ def determine_refund_amount(incentive_number,
 def determine_tax_incentives(incentive_numbers,
                              **kwargs):
     """
-    Return a tuple of 1d arrays for tax excemptions, deductions, credits, and 
+    Return a tuple of 1d arrays for tax exemptions, deductions, credits, and 
     refunds.
 
     Parameters
