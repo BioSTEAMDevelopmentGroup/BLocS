@@ -38,6 +38,10 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.fuel_tax = fuel_tax
         self.BT = BT 
     
+    def _FOC(self, FCI):
+        return (FCI*(self.property_insurance + self.maintenance + self.administration)
+                + self.labor_cost*(1+self.fringe_benefits+self.supplies))
+    
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         operating_hours = self._operating_hours
         ethanol_product = self.ethanol_product
@@ -87,15 +91,15 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         
         wages_arr = yearly_flows(wages, startup_FOCfrac)
         fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
-        sales_arr = yearly_flows(self.sales, startup_VOCfrac)
         ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
         taxable_property_arr = construction_flow(taxable_property)
         elec_eq_arr = construction_flow(elec_eq)
         biodiesel_eq_arr = construction_flow(biodiesel_eq)
         ethanol_eq_arr = construction_flow(ethanol_eq)
+        property_tax_arr = yearly_flows(FCI * self.property_tax, startup_FOCfrac)
         sales_tax = self.sales_tax
-        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax
-        purchase_cost_arr = construction_flow(self.purchase_cost)
+        purchase_cost_arr = sales_arr = construction_flow(self.purchase_cost)
+        sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
         
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
             self.incentive_numbers,
@@ -108,7 +112,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             ethanol_eq=ethanol_eq_arr,
             fuel_taxable_value=fuel_value_arr,
             fuel_tax_rate=self.fuel_tax,
-            sales_taxable_value=sales_arr,
+            sales_taxable_value=sales_arr, # Only regards building materials
             sales_tax_rate=self.sales_tax,
             sales_tax_assessed=sales_tax_arr,
             wages=wages_arr,
@@ -119,7 +123,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             jobs_50=50, # TODO: This is not explicit in BioSTEAM 
             utility_tax_assessed=0., # TODO: Ignore for now
             state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
-            property_tax_assessed=FCI * self.property_tax,
+            property_tax_assessed=property_tax_arr,
             IA_value=0., # TODO: Ignore for now
             building_mats=purchase_cost_arr,
             NM_value=elec_eq_arr, # TODO: Check this
@@ -131,7 +135,8 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         taxable_cashflow = taxable_cashflow - (exemptions + deductions)
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         index = taxable_cashflow > 0.
-        tax[index] = self.income_tax * taxable_cashflow[index]
+        tax[:] = property_tax_arr
+        tax[index] += (self.federal_income_tax + self.state_income_tax) * taxable_cashflow[index] 
         maximum_incentives = credits + refunds
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
