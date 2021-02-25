@@ -16,35 +16,55 @@ __all__ = ('IncentivesTEA',)
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
     def __init__(self, *args, incentive_numbers=(), 
+                 state_income_tax=None,
+                 federal_income_tax=None,
                  ethanol_product=None, 
+                 biodiesel_product=None,
                  ethanol_group=None, 
                  biodiesel_group=None,
+                 sales_tax=None,
+                 fuel_tax=None,
                  BT=None,
                  **kwargs):
         super().__init__(*args, **kwargs)
+        self.state_income_tax = state_income_tax
+        self.federal_income_tax = federal_income_tax
         self.incentive_numbers = incentive_numbers
         self.ethanol_product = ethanol_product
+        self.biodiesel_product = biodiesel_product
         self.ethanol_group = ethanol_group
         self.biodiesel_group = biodiesel_group
+        self.sales_tax = sales_tax
+        self.fuel_tax = fuel_tax
         self.BT = BT 
     
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         operating_hours = self._operating_hours
         ethanol_product = self.ethanol_product
+        biodiesel_product = self.biodiesel_product
         biodiesel_group = self.biodiesel_group
         ethanol_group = self.ethanol_group
         BT = self.BT
+        fuel_value = 0.
+        if ethanol_product:
+            # Ethanol in gal/yr
+            ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  
+            fuel_value += ethanol_product.cost * operating_hours
+            ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost()
+        else:
+            ethanol = ethanol_eq = 0.
+        if biodiesel_product: 
+            biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() 
+        else:
+            fuel_value += biodiesel_product.cost * operating_hours
+            biodiesel_eq = 0.
         
-        # Ethanol in gal/yr
-        ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  if ethanol_product else 0.
-        biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() if biodiesel_group else 0.
-        ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost() if ethanol_group else 0.
         elec_eq = self.lang_factor * BT.purchase_cost if BT else 0.
         TCI = self.TCI
         wages = self.labor_cost
         FCI = self.FCI
-        startup_VOCfrac = self._startup_VOCfrac
-        startup_FOCfrac = self._startup_FOCfrac
+        startup_VOCfrac = self.startup_VOCfrac
+        startup_FOCfrac = self.startup_FOCfrac
         construction_schedule = self._construction_schedule
         taxable_property = FCI
         start = self._start
@@ -66,34 +86,53 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             return y
         
         wages_arr = yearly_flows(wages, startup_FOCfrac)
+        fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
+        sales_arr = yearly_flows(self.sales, startup_VOCfrac)
         ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
+        taxable_property_arr = construction_flow(taxable_property)
         elec_eq_arr = construction_flow(elec_eq)
         biodiesel_eq_arr = construction_flow(biodiesel_eq)
         ethanol_eq_arr = construction_flow(ethanol_eq)
+        sales_tax = self.sales_tax
+        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax
+        purchase_cost_arr = construction_flow(self.purchase_cost)
         
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
-             self.incentive_numbers,
-             plant_years=self._years + self._start, 
-             wages=wages_arr, 
-             value_added=FCI,
-             TCI=TCI, # TODO: Verify this assumption
-             ethanol=ethanol_arr,
-             jobs_50=50, # TODO: This is not explicit in BioSTEAM 
-             elec_eq=elec_eq_arr,
-             NM_value=1e6, # TODO: What is this?
-             biodiesel_eq=biodiesel_eq_arr, 
-             ethanol_eq=ethanol_eq_arr,
-             start=self._start)
+            self.incentive_numbers,
+            start=self._start,
+            plant_years=self._years + self._start,
+            value_added=FCI,
+            property_taxable_value=taxable_property_arr,
+            property_tax_rate=self.property_tax,
+            biodiesel_eq=biodiesel_eq_arr, 
+            ethanol_eq=ethanol_eq_arr,
+            fuel_taxable_value=fuel_value_arr,
+            fuel_tax_rate=self.fuel_tax,
+            sales_taxable_value=sales_arr,
+            sales_tax_rate=self.sales_tax,
+            sales_tax_assessed=sales_tax_arr,
+            wages=wages_arr,
+            TCI=TCI,
+            ethanol=ethanol_arr,
+            fed_income_tax_assessed=taxable_cashflow * self.federal_income_tax,
+            elec_eq=elec_eq_arr,
+            jobs_50=50, # TODO: This is not explicit in BioSTEAM 
+            utility_tax_assessed=0., # TODO: Ignore for now
+            state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
+            property_tax_assessed=FCI * self.property_tax,
+            IA_value=0., # TODO: Ignore for now
+            building_mats=purchase_cost_arr,
+            NM_value=elec_eq_arr, # TODO: Check this
+        )
         self.exemptions = exemptions
         self.deductions = deductions
         self.credits = credits
         self.refunds = refunds
-
-        taxable_cashflow = taxable_cashflow - (exemptions.sum(axis=1) + deductions.sum(axis=1))
+        taxable_cashflow = taxable_cashflow - (exemptions + deductions)
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         index = taxable_cashflow > 0.
         tax[index] = self.income_tax * taxable_cashflow[index]
-        maximum_incentives = credits.sum(axis=1) + refunds.sum(axis=1)
+        maximum_incentives = credits + refunds
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
@@ -101,8 +140,14 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
 if __name__ == '__main__':
     IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
     tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
-    tea.incentive_numbers = tuple(range(1, 20))
+    tea.incentive_numbers = tuple(range(1, 21)) + tuple(range(22, 24))
+    tea.fuel_tax = 0.
+    tea.sales_tax = 0.
+    tea.sales_tax = 0.
+    tea.federal_income_tax = 0.35
+    tea.state_income_tax = 0. # TODO: Check this
     tea.ethanol_product = lc.ethanol
+    tea.biodiesel_product = lc.biodiesel
     tea.ethanol_group = lc.ethanol_production_units
     tea.biodiesel_group = lc.biodiesel_production_units
     tea.BT = lc.BT
