@@ -56,11 +56,11 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             fuel_value += ethanol_product.cost * operating_hours
             ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost()
         else:
-            ethanol = ethanol_eq = 0.
+            ethanol = ethanol_eq = ethanol_sales = 0.
         if biodiesel_product: 
+            fuel_value += biodiesel_product.cost * operating_hours
             biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() 
         else:
-            fuel_value += biodiesel_product.cost * operating_hours
             biodiesel_eq = 0.
         
         elec_eq = self.lang_factor * BT.purchase_cost if BT else 0.
@@ -97,6 +97,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         biodiesel_eq_arr = construction_flow(biodiesel_eq)
         ethanol_eq_arr = construction_flow(ethanol_eq)
         property_tax_arr = yearly_flows(FCI * self.property_tax, startup_FOCfrac)
+        fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax
         purchase_cost_arr = sales_arr = construction_flow(self.purchase_cost)
         sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
@@ -132,12 +133,12 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.deductions = deductions
         self.credits = credits
         self.refunds = refunds
-        taxable_cashflow = taxable_cashflow - (exemptions + deductions)
+        # taxable_cashflow = taxable_cashflow - property_tax_arr
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         index = taxable_cashflow > 0.
-        tax[:] = property_tax_arr
+        tax[:] = property_tax_arr + fuel_tax_arr
         tax[index] += (self.federal_income_tax + self.state_income_tax) * taxable_cashflow[index] 
-        maximum_incentives = credits + refunds
+        maximum_incentives = credits + refunds + deductions + exemptions
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
