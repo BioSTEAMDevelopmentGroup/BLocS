@@ -54,12 +54,12 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             # Ethanol in gal/yr
             ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  
             fuel_value += ethanol_product.cost * operating_hours
-            ethanol_eq = self.lang_factor * ethanol_group.get_purchase_cost()
+            ethanol_eq = 1e6 * self.lang_factor * ethanol_group.get_purchase_cost()
         else:
             ethanol = ethanol_eq = ethanol_sales = 0.
         if biodiesel_product: 
             fuel_value += biodiesel_product.cost * operating_hours
-            biodiesel_eq = self.lang_factor * biodiesel_group.get_purchase_cost() 
+            biodiesel_eq = 1e6 * self.lang_factor * biodiesel_group.get_purchase_cost() 
         else:
             biodiesel_eq = 0.
         
@@ -92,10 +92,10 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         wages_arr = yearly_flows(wages, startup_FOCfrac)
         fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
         ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
-        taxable_property_arr = construction_flow(taxable_property)
-        elec_eq_arr = construction_flow(elec_eq)
-        biodiesel_eq_arr = construction_flow(biodiesel_eq)
-        ethanol_eq_arr = construction_flow(ethanol_eq)
+        taxable_property_arr = construction_flow(taxable_property).cumsum()
+        elec_eq_arr = construction_flow(elec_eq).cumsum()
+        biodiesel_eq_arr = construction_flow(biodiesel_eq).cumsum()
+        ethanol_eq_arr = construction_flow(ethanol_eq).cumsum()
         property_tax_arr = yearly_flows(FCI * self.property_tax, startup_FOCfrac)
         fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax

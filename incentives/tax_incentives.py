@@ -76,7 +76,7 @@ def determine_exemption_amount(incentive_number,
         Value added to property [$]. Presumably similar to FCI. 
         TODO: look for more specifics.
     property_taxable_value : 1d array, optional 
-        Value of property on which property tax can be assessed [$/yr].
+        Value of property on which property tax can be assessed [$].
     property_tax_rate : float, optional
         Property tax rate [-].
     biodiesel_eq : 1d array, optional
@@ -177,7 +177,7 @@ def determine_deduction_amount(incentive_number,
         params = ('NM_value', 'sales_taxable_value', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = plant_years
-        deduction[start: start + duration] = NM_value[start: start + duration]
+        deduction[:start + duration] = NM_value[:start + duration]
         deduction = np.where(deduction > sales_taxable_value,
                              sales_taxable_value,
                              deduction)
@@ -424,7 +424,7 @@ def determine_refund_amount(incentive_number,
         check_any_missing_parameter(lcs, params)
         # Cost of building and construction materials
         duration = 1
-        refund[start: start + duration] = sales_tax_rate  * building_mats[start: start + duration]
+        refund[:start + duration] = sales_tax_rate  * building_mats[:start + duration]
         refund = np.where(refund > sales_tax_assessed,
                           sales_tax_assessed,
                           refund)

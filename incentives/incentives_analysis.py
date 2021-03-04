@@ -25,7 +25,7 @@ tea.ethanol_group = lc.ethanol_production_units
 tea.biodiesel_group = lc.biodiesel_production_units
 tea.BT = lc.BT
 
-model = bst.Model(lc.lipidcane_sys)
+model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
 @model.metric(name='Utility cost', units='10^6 USD/yr')
 def get_utility_cost():
