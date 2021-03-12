@@ -125,7 +125,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             utility_tax_assessed=0., # TODO: Ignore for now
             state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
             property_tax_assessed=property_tax_arr,
-            IA_value=0., # TODO: Ignore for now
+            IA_value=elec_eq_arr, # TODO: this is not correct, pass a different ARRAY here
             building_mats=purchase_cost_arr,
             NM_value=elec_eq_arr, # TODO: Check this
         )

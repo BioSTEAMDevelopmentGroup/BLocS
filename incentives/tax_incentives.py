@@ -415,7 +415,7 @@ def determine_refund_amount(incentive_number,
         check_any_missing_parameter(lcs, params)
         # Fees paid to (sub)contractors + cost of racks, shelving, conveyors
         duration = 1
-        refund[start: start + duration] = sales_tax_rate * IA_value[start: start + duration]
+        refund[:start + duration] = sales_tax_rate * IA_value[:start + duration]
         refund = np.where(refund > sales_tax_assessed,
                           sales_tax_assessed,
                           refund)

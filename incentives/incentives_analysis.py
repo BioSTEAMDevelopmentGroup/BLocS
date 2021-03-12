@@ -54,7 +54,7 @@ def MFSP_getter(incentive_number):
     return MFSP
 
 for incentive_number in range(1, 24):
-    if incentive_number == 21: continue # Doesn't work yet
+    # if incentive_number == 21: continue # Doesn't work yet
     element = f"Incentive {incentive_number}"
     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
     model.metric(get_excemptions, 'Excemptions', 'USD', element)
