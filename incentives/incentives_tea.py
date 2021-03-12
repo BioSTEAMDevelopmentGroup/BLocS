@@ -143,24 +143,24 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
    
-if __name__ == '__main__':
-    IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
-    tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
-    tea.incentive_numbers = tuple(range(1, 21)) + tuple(range(22, 24))
-    tea.fuel_tax = 0.
-    tea.sales_tax = 0.
-    tea.sales_tax = 0.
-    tea.federal_income_tax = 0.35
-    tea.state_income_tax = 0. # TODO: Check this
-    tea.ethanol_product = lc.ethanol
-    tea.biodiesel_product = lc.biodiesel
-    tea.ethanol_group = lc.ethanol_production_units
-    tea.biodiesel_group = lc.biodiesel_production_units
-    tea.BT = lc.BT
-    IRR_with_incentives = tea.solve_IRR()
-    df = tea.get_cashflow_table()
-    print(f"{IRR_without_incentives=}")
-    print(f"{IRR_with_incentives=}")
+# if __name__ == '__main__':
+#     IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
+#     tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
+#     tea.incentive_numbers = tuple(range(1, 21)) + tuple(range(22, 24))
+#     tea.fuel_tax = 0.
+#     tea.sales_tax = 0.
+#     tea.sales_tax = 0.
+#     tea.federal_income_tax = 0.35
+#     tea.state_income_tax = 0. # TODO: Check this
+#     tea.ethanol_product = lc.ethanol
+#     tea.biodiesel_product = lc.biodiesel
+#     tea.ethanol_group = lc.ethanol_production_units
+#     tea.biodiesel_group = lc.biodiesel_production_units
+#     tea.BT = lc.BT
+#     IRR_with_incentives = tea.solve_IRR()
+#     df = tea.get_cashflow_table()
+#     print(f"{IRR_without_incentives=}")
+#     print(f"{IRR_with_incentives=}")
 
 
 # folder = os.path.dirname(__file__)

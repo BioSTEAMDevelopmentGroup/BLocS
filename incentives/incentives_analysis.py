@@ -13,6 +13,7 @@ import biosteam as bst
 from biorefineries import lipidcane as lc
 from chaospy import distributions as shape
 import incentives as ti
+import numpy as np
 
 tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 tea.fuel_tax = 0.332
@@ -26,6 +27,7 @@ tea.biodiesel_group = lc.biodiesel_production_units
 tea.BT = lc.BT
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
+model.load_default_parameters(lc.lipidcane)
 
 @model.metric(name='Utility cost', units='10^6 USD/yr')
 def get_utility_cost():
@@ -125,12 +127,12 @@ def set_motor_fuel_tax(fuel_tax_rate):
 def set_sales_tax(sales_tax_rate):
     tea.sales_tax = sales_tax_rate
 
-# Electricity price
-#  elec_utility = bst.PowerUtility
-#  @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
-#                   distribution=EP_dist)
-#  def set_elec_price(elec_price):
-#      elec_utility.price = elec_price
+#Electricity price
+elec_utility = bst.PowerUtility
+@model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
+                  distribution=EP_dist)
+def set_elec_price(elec_price):
+      elec_utility.price = elec_price
     
 # Feedstock price
 @model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
@@ -138,11 +140,11 @@ def set_sales_tax(sales_tax_rate):
 def set_feed_price(feedstock_price):
     lipidcane.price = feedstock_price
     
-# Electricity generation
-#  @model.parameter(element='Electricity',kind='isolated', units='%',
-#                    distribution=EGeff_dist)
-#  def set_generation(efficiency):
-#      elec_utility.rate = elec_utility.rate*efficiency
+# Turbogenerator efficiency
+baseline = lc.BT.turbogenerator_efficiency
+@model.parameter(element=lc.BT, units='%', distribution=EGeff_dist)
+def set_turbogenerator_efficiency(turbo_generator_efficiency):
+    lc.BT.turbogenerator_efficiency = turbo_generator_efficiency
 
 ### Use these to check inputs ==================================================
 #  # Use this to check parameters
@@ -155,9 +157,14 @@ def set_feed_price(feedstock_price):
 #  model([0.05, 0.85, 8, 100000, 0.040]) #  Returns metrics (IRR and utility cost)
 
 ### Perform Monte Carlo analysis ===============================================
+np.random.seed(1688)
 N_samples = 5
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
 model.evaluate()
 table = model.table
+
+### Perform correlation analysis
+# model.spearman()
+
