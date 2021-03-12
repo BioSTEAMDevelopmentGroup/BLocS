@@ -42,7 +42,7 @@ def MFSP_baseline():
     tea.incentive_numbers = ()
     return 2.98668849 * tea.solve_price(lc.ethanol)
 
-get_excemptions = lambda: tea.exemptions.sum()
+get_exemptions = lambda: tea.exemptions.sum()
 get_deductions = lambda: tea.deductions.sum()
 get_credits = lambda: tea.credits.sum()
 get_refunds = lambda: tea.refunds.sum()
@@ -57,7 +57,7 @@ for incentive_number in range(1, 24):
     # if incentive_number == 21: continue # Doesn't work yet
     element = f"Incentive {incentive_number}"
     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
-    model.metric(get_excemptions, 'Excemptions', 'USD', element)
+    model.metric(get_exemptions, 'Excemptions', 'USD', element)
     model.metric(get_deductions, 'Deductions', 'USD', element)
     model.metric(get_credits, 'Credits', 'USD', element)
     model.metric(get_refunds, 'Refunds', 'USD', element)
@@ -141,7 +141,6 @@ def set_feed_price(feedstock_price):
     lipidcane.price = feedstock_price
     
 # Turbogenerator efficiency
-baseline = lc.BT.turbogenerator_efficiency
 @model.parameter(element=lc.BT, units='%', distribution=EGeff_dist)
 def set_turbogenerator_efficiency(turbo_generator_efficiency):
     lc.BT.turbogenerator_efficiency = turbo_generator_efficiency
@@ -166,5 +165,5 @@ model.evaluate()
 table = model.table
 
 ### Perform correlation analysis
-# model.spearman()
+# sp_table = model.spearman()
 
