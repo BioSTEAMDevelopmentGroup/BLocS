@@ -24,6 +24,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
                  biodiesel_group=None,
                  sales_tax=None,
                  fuel_tax=None,
+                 utility_tax=None,
                  BT=None,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,6 +37,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.biodiesel_group = biodiesel_group
         self.sales_tax = sales_tax
         self.fuel_tax = fuel_tax
+        self.utility_tax = utility_tax
         self.BT = BT 
     
     def _FOC(self, FCI):
@@ -101,6 +103,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         sales_tax = self.sales_tax
         purchase_cost_arr = sales_arr = construction_flow(self.purchase_cost)
         sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
+        # util_tax_arr = self.utility_tax * util_cost_arr
         
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
             self.incentive_numbers,
@@ -122,7 +125,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             fed_income_tax_assessed=taxable_cashflow * self.federal_income_tax,
             elec_eq=elec_eq_arr,
             jobs_50=50, # TODO: This is not explicit in BioSTEAM 
-            utility_tax_assessed=0., # TODO: Ignore for now
+            utility_tax_assessed=util_tax_arr, # TODO: Ignore for now
             state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
             property_tax_assessed=property_tax_arr,
             IA_value=elec_eq_arr, # TODO: this is not correct, pass a different ARRAY here
