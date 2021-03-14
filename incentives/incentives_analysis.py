@@ -14,12 +14,14 @@ from biorefineries import lipidcane as lc
 from chaospy import distributions as shape
 import incentives as ti
 import numpy as np
+import pandas as pd
 
 tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 tea.fuel_tax = 0.332
 tea.sales_tax = 0.06
 tea.federal_income_tax = 0.35
 tea.state_income_tax = 0.12
+tea.utility_tax = 0.
 tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
 tea.ethanol_group = lc.ethanol_production_units
@@ -35,7 +37,7 @@ def get_utility_cost():
 
 @model.metric(name='Net electricity production', units='MWh/yr')
 def get_electricity_production():
-    return sum(i.power_utility.rate for i in lc.lipidcane_sys.units) * tea._operating_hours/1000,
+    return sum(i.power_utility.rate for i in lc.lipidcane_sys.units) * tea._operating_hours/1000
 
 @model.metric(name="Baseline MFSP", units='USD/gal')
 def MFSP_baseline():
@@ -157,7 +159,7 @@ def set_turbogenerator_efficiency(turbo_generator_efficiency):
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 5
+N_samples = 1000
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
@@ -165,5 +167,22 @@ model.evaluate()
 table = model.table
 
 ### Perform correlation analysis
-# sp_table = model.spearman()
+sp_rho_table, sp_p_table = model.spearman_r()
+
+get_param_dct = lambda model: {p.name_with_units:p for p in model.get_parameters()}
+def filter_parameters(model, df, threshold):
+    new_df = pd.concat((df[df>=threshold], df[df<=-threshold]))
+    filtered = new_df.dropna(how='all')
+    param_dct = get_param_dct(model)
+    parameters = set(param_dct[i[1]] for i in filtered.index)
+    return parameters
+
+num_original_params = len(model.get_parameters())
+key_params = filter_parameters(model, sp_rho_table, 0.1)
+num_key_params = len(key_params)
+
+# table.to_excel(r'/Users/daltonstewart/Desktop/screening_results.xlsx', sheet_name='Simulation Results', index = True)
+# sp_rho_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results2.xlsx', sheet_name='Spearmans rho', index = True)
+# sp_p_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results3.xlsx', sheet_name='Spearmans p', index = True)
+
 
