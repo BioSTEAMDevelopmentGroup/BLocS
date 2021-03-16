@@ -125,12 +125,12 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             fed_income_tax_assessed=taxable_cashflow * self.federal_income_tax,
             elec_eq=elec_eq_arr,
             jobs_50=50, # TODO: This is not explicit in BioSTEAM 
-            utility_tax_assessed=util_tax_arr, # TODO: Ignore for now
+            utility_tax_assessed=0., #util_tax_arr, # TODO: pas util_tax_arr here
             state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
             property_tax_assessed=property_tax_arr,
-            IA_value=elec_eq_arr, # TODO: this is not correct, pass a different ARRAY here
+            IA_value=elec_eq_arr, # TODO: this is not correct, pass conveyor cost ARRAY here
             building_mats=purchase_cost_arr,
-            NM_value=elec_eq_arr, # TODO: Check this
+            NM_value=elec_eq, # TODO: Yoel will add biomass cost
         )
         self.exemptions = exemptions
         self.deductions = deductions
