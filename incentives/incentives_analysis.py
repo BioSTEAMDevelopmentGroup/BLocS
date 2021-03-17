@@ -12,6 +12,7 @@ biorefinery TEA and LCA.
 import biosteam as bst
 from biorefineries import lipidcane as lc
 from chaospy import distributions as shape
+from biosteam.evaluation.evaluation_tools import triang
 import incentives as ti
 import numpy as np
 import pandas as pd
@@ -26,6 +27,8 @@ tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
 tea.ethanol_group = lc.ethanol_production_units
 tea.biodiesel_group = lc.biodiesel_production_units
+tea.feedstock = lc.lipidcane
+tea.investment_site = 'U.S. Gulf Coast' # print tea.investment_site_factors for options
 tea.BT = lc.BT
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
@@ -62,6 +65,14 @@ for incentive_number in range(1, 24):
     model.metric(get_deductions, 'Deductions', 'USD', element)
     model.metric(get_credits, 'Credits', 'USD', element)
     model.metric(get_refunds, 'Refunds', 'USD', element)
+
+@model.metric(name="MFSP", units='USD/gal', element='Incentive 26')
+def MFSP():
+    tea.incentive_numbers = ()
+    tea.depreciation_incentive_26(True)
+    MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
+    tea.depreciation_incentive_26(False)
+    return MFSP
 
 ### Create parameter distributions ============================================
 
@@ -128,23 +139,69 @@ def set_motor_fuel_tax(fuel_tax_rate):
 def set_sales_tax(sales_tax_rate):
     tea.sales_tax = sales_tax_rate
 
-#Electricity price
+# Electricity price
 elec_utility = bst.PowerUtility
 @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
                   distribution=EP_dist)
 def set_elec_price(electricity_price):
       elec_utility.price = electricity_price
     
+#: WARNING: these distributions are arbitrary and a thorough literature search
+#: and an analysis of U.S. biodiesel, ethanol price projections should be made 
+#: to include these
+    
 # Feedstock price
 @model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
                  distribution=shape.Uniform(FP_L, FP_U))
 def set_feed_price(feedstock_price):
     lipidcane.price = feedstock_price
-    
+
+# Plant capacity
+@model.parameter(element=lipidcane, kind='isolated', units='kg/hr',
+                 distribution=triang(lipidcane.F_mass))
+def set_plant_capacity(plant_capacity):
+    lipidcane.F_mass = plant_capacity
+
+# Boiler efficiency
+@model.parameter(element=lc.BT, units='%', distribution=triang(lc.BT.boiler_efficiency))
+def set_boiler_efficiency(boiler_efficiency):
+    lc.BT.boiler_efficiency = boiler_efficiency    
+
 # Turbogenerator efficiency
 @model.parameter(element=lc.BT, units='%', distribution=EGeff_dist)
 def set_turbogenerator_efficiency(turbo_generator_efficiency):
     lc.BT.turbogenerator_efficiency = turbo_generator_efficiency
+
+# Fermentation efficiency
+fermentation = lc.R301
+@model.parameter(
+    element=fermentation, distribution=shape.Triangle(0.85, 0.90, 0.95),
+    baseline=fermentation.efficiency,
+)
+def set_fermentation_efficiency(efficiency):
+    fermentation.efficiency= efficiency
+
+# Biodiesel price
+@model.parameter(
+    element=lc.biodiesel, distribution=triang(lc.biodiesel.price),
+    baseline=lc.biodiesel.price,
+)
+def set_biodiesel_price(price):
+    lc.biodiesel.price = price
+
+# Ethanol price
+@model.parameter(
+    element=lc.ethanol, distribution=triang(lc.ethanol.price),
+    baseline=lc.ethanol.price,
+)
+def set_ethanol_price(price):
+    lc.ethanol.price = price
+
+# Lipid fraction
+# Originally 0.10, but this is much to optimistic. In fact,
+# even 0.05 is optimistic.
+model.parameter(lc.set_lipid_fraction, element=lc.lipidcane,
+                distribution=triang(0.05), baseline=0.05)
 
 ### Use these to check inputs ==================================================
 #  # Use this to check parameters
@@ -158,7 +215,7 @@ def set_turbogenerator_efficiency(turbo_generator_efficiency):
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 1000
+N_samples = 10
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)

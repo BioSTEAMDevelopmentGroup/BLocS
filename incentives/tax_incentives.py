@@ -182,18 +182,6 @@ def determine_deduction_amount(incentive_number,
                              sales_taxable_value,
                              deduction)
         deduction *= sales_tax_rate
-    #DO NOT DELETE
-    #TODO ask Yoel, I'm not sure how this incentive would interact with the existing depreciation calculations
-    # elif incentive_number == 26:
-    # deduction_amount = 0.5*adj_basis #adjusted basis of property, formula varies; DON'T MULTIPLY BY TAX RATE
-    # duration = 1
-    # if deduction_amount <= property_taxable_value:
-    #         deduction_amount = deduction_amount
-    #     else:
-    #         deduction_amount = property_taxable_value
-    # cashflow = fixed_incentives([duration],[deduction_amount],
-    #                                  plant_years, start)
-    #DO NOT DELETE
     return deduction
         
 def determine_credit_amount(incentive_number,

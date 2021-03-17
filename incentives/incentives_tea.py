@@ -13,6 +13,11 @@ import biosteam as bst
     
 __all__ = ('IncentivesTEA',)
 
+inc26 = bst.TEA.depreciation_schedules['MACRS7'].copy()
+inc26[0] += 0.5
+inc26[1:] = inc26[1:] / inc26[1:].sum() / (1 - inc26[0])
+bst.TEA.depreciation_schedules['MACRS7 + Incentive 26'] = inc26
+
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
     def __init__(self, *args, incentive_numbers=(), 
@@ -26,6 +31,8 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
                  fuel_tax=None,
                  utility_tax=None,
                  BT=None,
+                 feedstock=None,
+                 investment_site='U.S. Gulf Coast',
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.state_income_tax = state_income_tax
@@ -37,14 +44,30 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.biodiesel_group = biodiesel_group
         self.sales_tax = sales_tax
         self.fuel_tax = fuel_tax
+        self.feedstock = feedstock
         self.utility_tax = utility_tax
+        self.investment_site = investment_site
         self.BT = BT 
     
+    def depreciation_incentive_26(self, switch):
+        if switch:
+            self._depreciation_array = inc26 = self.depreciation_schedules[self.depreciation].copy()
+            inc26[0] += 0.5
+            inc26[1:] = inc26[1:] / inc26[1:].sum() / (1 - inc26[0])
+        else:
+            self._depreciation_array = self.depreciation_schedules[self.depreciation]
+        
+    def _FCI(self, TDC):
+        self._FCI_cached = FCI = bst.TEA.investment_site_factors[self.investment_site] * super()._FCI(TDC)
+        return FCI
+        
     def _FOC(self, FCI):
         return (FCI*(self.property_insurance + self.maintenance + self.administration)
                 + self.labor_cost*(1+self.fringe_benefits+self.supplies))
     
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
+        lang_factor = self.lang_factor
+        converyor_costs = lang_factor * sum([i.purchase_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
         operating_hours = self._operating_hours
         ethanol_product = self.ethanol_product
         biodiesel_product = self.biodiesel_product
@@ -56,16 +79,17 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             # Ethanol in gal/yr
             ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  
             fuel_value += ethanol_product.cost * operating_hours
-            ethanol_eq = 1e6 * self.lang_factor * ethanol_group.get_purchase_cost()
+            ethanol_eq = 1e6 * lang_factor * ethanol_group.get_purchase_cost()
         else:
             ethanol = ethanol_eq = ethanol_sales = 0.
         if biodiesel_product: 
             fuel_value += biodiesel_product.cost * operating_hours
-            biodiesel_eq = 1e6 * self.lang_factor * biodiesel_group.get_purchase_cost() 
+            biodiesel_eq = 1e6 * lang_factor * biodiesel_group.get_purchase_cost() 
         else:
             biodiesel_eq = 0.
-        
-        elec_eq = self.lang_factor * BT.purchase_cost if BT else 0.
+        feedstock = self.feedstock
+        feedstock_value = feedstock.cost * operating_hours
+        elec_eq = lang_factor * BT.purchase_cost if BT else 0.
         TCI = self.TCI
         wages = self.labor_cost
         FCI = self.FCI
@@ -93,18 +117,21 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         
         wages_arr = yearly_flows(wages, startup_FOCfrac)
         fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
+        feedstock_value_arr = yearly_flows(feedstock_value, startup_VOCfrac)
         ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
         taxable_property_arr = construction_flow(taxable_property).cumsum()
         elec_eq_arr = construction_flow(elec_eq).cumsum()
         biodiesel_eq_arr = construction_flow(biodiesel_eq).cumsum()
         ethanol_eq_arr = construction_flow(ethanol_eq).cumsum()
+        converyor_cost_arr = construction_flow(converyor_costs).cumsum()
         property_tax_arr = yearly_flows(FCI * self.property_tax, startup_FOCfrac)
         fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax
-        purchase_cost_arr = sales_arr = construction_flow(self.purchase_cost)
+        purchase_cost_arr = construction_flow(self.purchase_cost)
         sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
-        # util_tax_arr = self.utility_tax * util_cost_arr
-        
+        util_cost_arr = yearly_flows(self.utility_cost, startup_FOCfrac)
+        util_tax_arr = self.utility_tax * util_cost_arr
+        sales_arr = taxable_property_arr + feedstock_value_arr
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
             self.incentive_numbers,
             start=self._start,
@@ -116,7 +143,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             ethanol_eq=ethanol_eq_arr,
             fuel_taxable_value=fuel_value_arr,
             fuel_tax_rate=self.fuel_tax,
-            sales_taxable_value=sales_arr, # Only regards building materials
+            sales_taxable_value=sales_arr, # Regards equipment cost with building materials (foundation, pipping, etc.), installation fees, and biomass flow rate
             sales_tax_rate=self.sales_tax,
             sales_tax_assessed=sales_tax_arr,
             wages=wages_arr,
@@ -124,13 +151,13 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             ethanol=ethanol_arr,
             fed_income_tax_assessed=taxable_cashflow * self.federal_income_tax,
             elec_eq=elec_eq_arr,
-            jobs_50=50, # TODO: This is not explicit in BioSTEAM 
-            utility_tax_assessed=0., #util_tax_arr, # TODO: pas util_tax_arr here
+            jobs_50=50, # Assumption made by the original lipid-cane biorefinery publication 
+            utility_tax_assessed=util_tax_arr,
             state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
             property_tax_assessed=property_tax_arr,
-            IA_value=elec_eq_arr, # TODO: this is not correct, pass conveyor cost ARRAY here
+            IA_value=converyor_cost_arr, 
             building_mats=purchase_cost_arr,
-            NM_value=elec_eq, # TODO: Yoel will add biomass cost
+            NM_value=elec_eq + feedstock_value_arr,
         )
         self.exemptions = exemptions
         self.deductions = deductions
