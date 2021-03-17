@@ -44,7 +44,10 @@ def get_electricity_production():
 @model.metric(name="Baseline MFSP", units='USD/gal')
 def MFSP_baseline():
     tea.incentive_numbers = ()
-    return 2.98668849 * tea.solve_price(lc.ethanol)
+    MFSP_baseline_box[0] = MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
+    return MFSP
+
+MFSP_baseline_box = [None]
 
 get_exemptions = lambda: tea.exemptions.sum()
 get_deductions = lambda: tea.deductions.sum()
@@ -54,7 +57,7 @@ get_refunds = lambda: tea.refunds.sum()
 def MFSP_getter(incentive_number):
     def MFSP():
         tea.incentive_numbers = (incentive_number,)
-        return 2.98668849 * tea.solve_price(lc.ethanol)
+        return 2.98668849 * tea.solve_price(lc.ethanol) - MFSP_baseline_box[0]
     return MFSP
 
 for incentive_number in range(1, 24):
@@ -69,10 +72,10 @@ for incentive_number in range(1, 24):
 @model.metric(name="MFSP", units='USD/gal', element='Incentive 26')
 def MFSP():
     tea.incentive_numbers = ()
-    tea.depreciation_incentive_26(True)
+    tea.depreciation_incentive_24(True)
     MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
-    tea.depreciation_incentive_26(False)
-    return MFSP
+    tea.depreciation_incentive_24(False)
+    return MFSP - MFSP_baseline_box[0]
 
 ### Create parameter distributions ============================================
 

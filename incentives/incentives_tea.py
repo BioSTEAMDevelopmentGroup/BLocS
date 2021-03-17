@@ -13,11 +13,6 @@ import biosteam as bst
     
 __all__ = ('IncentivesTEA',)
 
-inc26 = bst.TEA.depreciation_schedules['MACRS7'].copy()
-inc26[0] += 0.5
-inc26[1:] = inc26[1:] / inc26[1:].sum() / (1 - inc26[0])
-bst.TEA.depreciation_schedules['MACRS7 + Incentive 26'] = inc26
-
 class IncentivesTEA(lc.ConventionalEthanolTEA):
     
     def __init__(self, *args, incentive_numbers=(), 
@@ -49,11 +44,11 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.investment_site = investment_site
         self.BT = BT 
     
-    def depreciation_incentive_26(self, switch):
+    def depreciation_incentive_24(self, switch):
         if switch:
-            self._depreciation_array = inc26 = self.depreciation_schedules[self.depreciation].copy()
-            inc26[0] += 0.5
-            inc26[1:] = inc26[1:] / inc26[1:].sum() / (1 - inc26[0])
+            self._depreciation_array = inc24 = self.depreciation_schedules[self.depreciation].copy()
+            inc24[0] += 0.5
+            inc24[1:] = inc24[1:] / inc24[1:].sum() / (1 - inc24[0])
         else:
             self._depreciation_array = self.depreciation_schedules[self.depreciation]
         
