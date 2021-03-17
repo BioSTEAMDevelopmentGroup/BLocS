@@ -29,7 +29,6 @@ tea.biodiesel_group = lc.biodiesel_production_units
 tea.BT = lc.BT
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
-model.load_default_parameters(lc.lipidcane)
 
 @model.metric(name='Utility cost', units='10^6 USD/yr')
 def get_utility_cost():
@@ -106,18 +105,18 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 
 # Federal income tax 
 @model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
-def set_fed_income_tax(F_tax_rate):
-    tea.federal_income_tax = F_tax_rate
+def set_fed_income_tax(Federal_income_tax_rate):
+    tea.federal_income_tax = Federal_income_tax_rate
     
 # State income tax
 @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
-def set_state_income_tax(S_tax_rate):
-    tea.state_income_tax = S_tax_rate
+def set_state_income_tax(State_income_tax_rate):
+    tea.state_income_tax = State_income_tax_rate
     
 # State property tax
 @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
-def set_state_property_tax(S_P_tax_rate):
-    tea.property_tax = S_P_tax_rate
+def set_state_property_tax(State_property_tax_rate):
+    tea.property_tax = State_property_tax_rate
     
 # State motor fuel tax
 @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
@@ -133,8 +132,8 @@ def set_sales_tax(sales_tax_rate):
 elec_utility = bst.PowerUtility
 @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
                   distribution=EP_dist)
-def set_elec_price(elec_price):
-      elec_utility.price = elec_price
+def set_elec_price(electricity_price):
+      elec_utility.price = electricity_price
     
 # Feedstock price
 @model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
@@ -185,4 +184,9 @@ num_key_params = len(key_params)
 # sp_rho_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results2.xlsx', sheet_name='Spearmans rho', index = True)
 # sp_p_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results3.xlsx', sheet_name='Spearmans p', index = True)
 
+bst.plots.plot_montecarlo(model.table['Incentive 1']['MFSP [USD/gal]'])
 
+bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'],top=10)
+
+# this plot doesnt work
+# bst.plots.plot_montecarlo_across_coordinate(model.table['Power utility']['Electricity price [USD/kWh]'],(model.table['Incentive 1']['MFSP [USD/gal]'],))
