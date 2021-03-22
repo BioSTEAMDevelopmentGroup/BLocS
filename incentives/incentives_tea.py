@@ -124,7 +124,8 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         sales_tax = self.sales_tax
         purchase_cost_arr = construction_flow(self.purchase_cost)
         sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
-        util_cost_arr = yearly_flows(self.utility_cost, startup_FOCfrac)
+        #here i took the absolute value of utility cost bc it will likely always be negative
+        util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac)
         util_tax_arr = self.utility_tax * util_cost_arr
         sales_arr = taxable_property_arr + feedstock_value_arr
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
@@ -161,7 +162,8 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         # taxable_cashflow = taxable_cashflow - property_tax_arr
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         index = taxable_cashflow > 0.
-        tax[:] = property_tax_arr + fuel_tax_arr
+        #i included utility tax here
+        tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr
         tax[index] += (self.federal_income_tax + self.state_income_tax) * taxable_cashflow[index] 
         maximum_incentives = credits + refunds + deductions + exemptions
         index = maximum_incentives > tax
