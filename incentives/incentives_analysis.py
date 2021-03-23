@@ -16,6 +16,7 @@ from biosteam.evaluation.evaluation_tools import triang
 import incentives as ti
 import numpy as np
 import pandas as pd
+import os
 
 tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 tea.fuel_tax = 0.332
@@ -237,7 +238,7 @@ model.parameter(lc.set_lipid_fraction, element=lc.lipidcane,
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 100
+N_samples = 5
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
@@ -246,6 +247,31 @@ table = model.table
 
 ### Perform correlation analysis
 sp_rho_table, sp_p_table = model.spearman_r()
+
+
+### Plot across coordinate
+
+parameters = list(model.get_parameters())
+parameters.remove(set_elec_price)
+model_without_electricity = bst.Model(lc.lipidcane_sys, 
+                                      metrics=model.metrics,
+                                      parameters=parameters,
+                                      exception_hook='raise')
+samples = model_without_electricity.sample(N_samples, rule)
+model_without_electricity.load_samples(samples)
+folder = os.path.dirname(__file__)
+dct = model_without_electricity.evaluate_across_coordinate(
+    'Electricity price',
+    set_elec_price,
+    np.linspace(
+        set_elec_price.distribution.lower.min(),
+        set_elec_price.distribution.upper.max(),
+        10,
+    ),
+    xlfile=os.path.join(folder, 'uncertainty_across_electricity.xlsx'),
+    notify=True
+)
+
 
 # get_param_dct = lambda model: {p.name_with_units:p for p in model.get_parameters()}
 # def filter_parameters(model, df, threshold):
@@ -268,6 +294,9 @@ sp_rho_table, sp_p_table = model.spearman_r()
 # bst.plots.plot_montecarlo(model.table['Incentive 8']['MFSP Reduction [USD/gal]'])
 # bst.plots.plot_montecarlo(model.table['Incentive 20']['MFSP Reduction [USD/gal]'])
 bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
+
+
+
 
 # this plot doesnt work
 # bst.plots.plot_montecarlo_across_coordinate(model.table['Power utility']['Electricity price [USD/kWh]'],(model.table['Incentive 1']['MFSP Reduction [USD/gal]'],))

@@ -27,8 +27,8 @@ def set_x_axis(with_labels=True):
         
 # Plot metrics across lipid fraction
 
-readxl = lambda sheet: pd.read_excel(os.path.join(folder, '/Baseline MFSP by elec price.xlsx'),
-                                     sheet_name=sheet, index_col=0)
+readxl = lambda sheet: pd.read_excel(os.path.join(folder, 'uncertainty_across_electricity.xlsx'),
+                                     sheet_name="Incentive 1 MFSP", index_col=0)
 
 fig = plt.figure()        
    
