@@ -27,7 +27,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
                  utility_tax=None,
                  BT=None,
                  feedstock=None,
-                 investment_site='U.S. Gulf Coast',
+                 F_investment=1.,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.state_income_tax = state_income_tax
@@ -41,7 +41,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         self.fuel_tax = fuel_tax
         self.feedstock = feedstock
         self.utility_tax = utility_tax
-        self.investment_site = investment_site
+        self.F_investment = F_investment
         self.BT = BT 
     
     def depreciation_incentive_24(self, switch):
@@ -49,11 +49,12 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
             self._depreciation_array = inc24 = self.depreciation_schedules[self.depreciation].copy()
             inc24[0] += 0.5
             inc24[1:] = inc24[1:] / inc24[1:].sum() / (1 - inc24[0])
+            np.testing.assert_allclose(inc24.sum(), 1.) 
         else:
             self._depreciation_array = self.depreciation_schedules[self.depreciation]
         
     def _FCI(self, TDC):
-        self._FCI_cached = FCI = bst.TEA.investment_site_factors[self.investment_site] * super()._FCI(TDC)
+        self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
         return FCI
         
     def _FOC(self, FCI):

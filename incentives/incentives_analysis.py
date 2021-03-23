@@ -69,12 +69,14 @@ for incentive_number in range(1, 24):
     model.metric(get_credits, 'Credits', 'USD', element)
     model.metric(get_refunds, 'Refunds', 'USD', element)
 
-@model.metric(name="MFSP", units='USD/gal', element='Incentive 26')
+@model.metric(name="MFSP", units='USD/gal', element='Incentive 24')
 def MFSP():
     tea.incentive_numbers = ()
     tea.depreciation_incentive_24(True)
     MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
     tea.depreciation_incentive_24(False)
+    MFSP_baseline = 2.98668849 * tea.solve_price(lc.ethanol)
+    np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0])
     return MFSP - MFSP_baseline_box[0]
 
 ### Create parameter distributions ============================================
