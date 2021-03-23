@@ -22,7 +22,7 @@ tea.fuel_tax = 0.332
 tea.sales_tax = 0.06
 tea.federal_income_tax = 0.35
 tea.state_income_tax = 0.12
-tea.utility_tax = 0.
+tea.utility_tax = 0.02
 tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
 tea.ethanol_group = lc.ethanol_production_units
@@ -30,6 +30,7 @@ tea.biodiesel_group = lc.biodiesel_production_units
 tea.feedstock = lc.lipidcane
 tea.investment_site = 'U.S. Gulf Coast' # print tea.investment_site_factors for options
 tea.BT = lc.BT
+# bst.PowerUtility.price = 0.2
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
@@ -57,13 +58,20 @@ get_refunds = lambda: tea.refunds.sum()
 def MFSP_getter(incentive_number):
     def MFSP():
         tea.incentive_numbers = (incentive_number,)
-        return 2.98668849 * tea.solve_price(lc.ethanol) - MFSP_baseline_box[0]
+        return 2.98668849 * tea.solve_price(lc.ethanol)
+    return MFSP
+
+def MFSP_reduction_getter(incentive_number):
+    def MFSP():
+        tea.incentive_numbers = (incentive_number,)
+        return (2.98668849 * tea.solve_price(lc.ethanol) - MFSP_baseline_box[0])
     return MFSP
 
 for incentive_number in range(1, 24):
     # if incentive_number == 21: continue # Doesn't work yet
     element = f"Incentive {incentive_number}"
     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
+    model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
     model.metric(get_exemptions, 'Excemptions', 'USD', element)
     model.metric(get_deductions, 'Deductions', 'USD', element)
     model.metric(get_credits, 'Credits', 'USD', element)
@@ -93,7 +101,8 @@ SPTR_dist = shape.Uniform(0.0037, 0.0740)
 # State motor fuel tax rates
 SMFTR_dist = shape.Uniform(0.0895, 0.586)
 
-# TODO: State utility tax rates
+# State utility tax rates
+SUTR_dist = shape.Uniform(0, 0.05)
 
 # State sales tax rates
 SSTR_dist = shape.Uniform(0, 0.0725)
@@ -118,6 +127,7 @@ LCCF_dist = shape.Uniform(0.82, 2.56)
 EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 
 ### Add Parameters =============================================================
+## Highly relevant contextual parameters
 
 # Federal income tax 
 @model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
@@ -138,6 +148,11 @@ def set_state_property_tax(State_property_tax_rate):
 @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
 def set_motor_fuel_tax(fuel_tax_rate):
     tea.fuel_tax = fuel_tax_rate
+
+#State utility tax
+@model.parameter(element='TEA', kind='isolated', units='%', distribution=SUTR_dist)
+def set_util_tax(util_tax_rate):
+    tea.utility_tax = util_tax_rate
     
 # State sales tax
 @model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
@@ -150,20 +165,22 @@ elec_utility = bst.PowerUtility
                   distribution=EP_dist)
 def set_elec_price(electricity_price):
       elec_utility.price = electricity_price
+      
+# Feedstock price
+@model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
+                  distribution=shape.Uniform(FP_L, FP_U))
+def set_feed_price(feedstock_price):
+    lipidcane.price = feedstock_price
     
 #: WARNING: these distributions are arbitrary and a thorough literature search
 #: and an analysis of U.S. biodiesel, ethanol price projections should be made 
 #: to include these
     
-# Feedstock price
-@model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
-                 distribution=shape.Uniform(FP_L, FP_U))
-def set_feed_price(feedstock_price):
-    lipidcane.price = feedstock_price
+##Innate uncertainty in biorefinery operations
 
 # Plant capacity
 @model.parameter(element=lipidcane, kind='isolated', units='kg/hr',
-                 distribution=triang(lipidcane.F_mass))
+                  distribution=triang(lipidcane.F_mass))
 def set_plant_capacity(plant_capacity):
     lipidcane.F_mass = plant_capacity
 
@@ -194,13 +211,13 @@ def set_fermentation_efficiency(efficiency):
 def set_biodiesel_price(price):
     lc.biodiesel.price = price
 
-# Ethanol price
-@model.parameter(
-    element=lc.ethanol, distribution=triang(lc.ethanol.price),
-    baseline=lc.ethanol.price,
-)
-def set_ethanol_price(price):
-    lc.ethanol.price = price
+# # Ethanol price
+# @model.parameter(
+#     element=lc.ethanol, distribution=triang(lc.ethanol.price),
+#     baseline=lc.ethanol.price,
+# )
+# def set_ethanol_price(price):
+#     lc.ethanol.price = price
 
 # Lipid fraction
 # Originally 0.10, but this is much to optimistic. In fact,
@@ -220,7 +237,7 @@ model.parameter(lc.set_lipid_fraction, element=lc.lipidcane,
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 10
+N_samples = 100
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
@@ -230,25 +247,31 @@ table = model.table
 ### Perform correlation analysis
 sp_rho_table, sp_p_table = model.spearman_r()
 
-get_param_dct = lambda model: {p.name_with_units:p for p in model.get_parameters()}
-def filter_parameters(model, df, threshold):
-    new_df = pd.concat((df[df>=threshold], df[df<=-threshold]))
-    filtered = new_df.dropna(how='all')
-    param_dct = get_param_dct(model)
-    parameters = set(param_dct[i[1]] for i in filtered.index)
-    return parameters
+# get_param_dct = lambda model: {p.name_with_units:p for p in model.get_parameters()}
+# def filter_parameters(model, df, threshold):
+#     new_df = pd.concat((df[df>=threshold], df[df<=-threshold]))
+#     filtered = new_df.dropna(how='all')
+#     param_dct = get_param_dct(model)
+#     parameters = set(param_dct[i[1]] for i in filtered.index)
+#     return parameters
 
-num_original_params = len(model.get_parameters())
-key_params = filter_parameters(model, sp_rho_table, 0.1)
-num_key_params = len(key_params)
+# num_original_params = len(model.get_parameters())
+# key_params = filter_parameters(model, sp_rho_table, 0.1)
+# num_key_params = len(key_params)
 
 # table.to_excel(r'/Users/daltonstewart/Desktop/screening_results.xlsx', sheet_name='Simulation Results', index = True)
 # sp_rho_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results2.xlsx', sheet_name='Spearmans rho', index = True)
 # sp_p_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results3.xlsx', sheet_name='Spearmans p', index = True)
 
-bst.plots.plot_montecarlo(model.table['Incentive 1']['MFSP [USD/gal]'])
-
-bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'],top=10)
+# bst.plots.plot_montecarlo(model.table['Biorefinery']['Baseline MFSP [USD/gal]'])
+# bst.plots.plot_montecarlo(model.table['Incentive 1']['MFSP Reduction [USD/gal]'])
+# bst.plots.plot_montecarlo(model.table['Incentive 8']['MFSP Reduction [USD/gal]'])
+# bst.plots.plot_montecarlo(model.table['Incentive 20']['MFSP Reduction [USD/gal]'])
+bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 
 # this plot doesnt work
-# bst.plots.plot_montecarlo_across_coordinate(model.table['Power utility']['Electricity price [USD/kWh]'],(model.table['Incentive 1']['MFSP [USD/gal]'],))
+# bst.plots.plot_montecarlo_across_coordinate(model.table['Power utility']['Electricity price [USD/kWh]'],(model.table['Incentive 1']['MFSP Reduction [USD/gal]'],))
+
+
+# bst.plots.plot_scatter_points(model.table['Power utility']['Electricity price [USD/kWh]'], model.table['Biorefinery']['Baseline MFSP [USD/gal]'])
+
