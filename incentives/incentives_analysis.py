@@ -84,7 +84,7 @@ def MFSP():
     MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
     tea.depreciation_incentive_24(False)
     MFSP_baseline = 2.98668849 * tea.solve_price(lc.ethanol)
-    np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0])
+    np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0], rtol=1e-3)
     return MFSP - MFSP_baseline_box[0]
 
 ### Create parameter distributions ============================================

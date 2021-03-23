@@ -5,11 +5,13 @@ Created on Wed Mar 17 21:51:17 2021
 
 @author: daltonstewart
 """
+import os
 import pandas as pd
 import numpy as np
 import biosteam as bst
 from biosteam.utils import colors
 
+folder = os.path.dirname(__file__)
 
 # %% Plot montecarlo of lipidcane across lipid fraction
 import matplotlib.pyplot as plt
@@ -25,7 +27,7 @@ def set_x_axis(with_labels=True):
         
 # Plot metrics across lipid fraction
 
-readxl = lambda sheet: pd.read_excel('/Users/daltonstewart/Dropbox/Stewart-Guest_Shared/Baseline MFSP by elec price.xlsx',
+readxl = lambda sheet: pd.read_excel(os.path.join(folder, '/Baseline MFSP by elec price.xlsx'),
                                      sheet_name=sheet, index_col=0)
 
 fig = plt.figure()        

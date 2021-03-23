@@ -48,7 +48,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         if switch:
             self._depreciation_array = inc24 = self.depreciation_schedules[self.depreciation].copy()
             inc24[0] += 0.5
-            inc24[1:] = inc24[1:] / inc24[1:].sum() / (1 - inc24[0])
+            inc24[1:] = inc24[1:] / (inc24[1:].sum() / (1 - inc24[0]))
             np.testing.assert_allclose(inc24.sum(), 1.) 
         else:
             self._depreciation_array = self.depreciation_schedules[self.depreciation]
