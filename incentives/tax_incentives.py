@@ -260,7 +260,6 @@ def determine_credit_amount(incentive_number,
         params = ('ethanol', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         # Fuel content of ethanol is 76100 btu/gal; DON'T MULTIPLY BY TAX RATE
-        # credit = 76100*(0.2/76000)*ethanol 
         duration = 5
         credit[start: start + duration] = 76100 * 0.2 / 76000 * ethanol[start: start + duration]
         credit[credit > 3e6] = 3e6

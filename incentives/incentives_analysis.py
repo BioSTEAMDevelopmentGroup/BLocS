@@ -19,19 +19,18 @@ import pandas as pd
 import os
 
 tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
-tea.fuel_tax = 0.332
-tea.sales_tax = 0.06
+tea.fuel_tax = 0.
+tea.sales_tax = 0.
 tea.federal_income_tax = 0.35
 tea.state_income_tax = 0.12
-tea.utility_tax = 0.02
+tea.utility_tax = 0.
 tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
 tea.ethanol_group = lc.ethanol_production_units
 tea.biodiesel_group = lc.biodiesel_production_units
 tea.feedstock = lc.lipidcane
-tea.investment_site = 'U.S. Gulf Coast' # print tea.investment_site_factors for options
+tea.F_investment = 1
 tea.BT = lc.BT
-# bst.PowerUtility.price = 0.2
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
@@ -78,7 +77,7 @@ for incentive_number in range(1, 24):
     model.metric(get_credits, 'Credits', 'USD', element)
     model.metric(get_refunds, 'Refunds', 'USD', element)
 
-@model.metric(name="MFSP", units='USD/gal', element='Incentive 24')
+@model.metric(name="MFSP Reduction", units='USD/gal', element='Incentive 24')
 def MFSP():
     tea.incentive_numbers = ()
     tea.depreciation_incentive_24(True)
@@ -94,22 +93,22 @@ def MFSP():
 FITR_dist = shape.Triangle(0.3,0.35,0.4)
 
 # State income tax rates, range from 0% to 12%
-SITR_dist = shape.Uniform(0, 0.12)
+SITR_dist = shape.Triangle(0, 0.065, 0.12)
 
 # State property tax rates
-SPTR_dist = shape.Uniform(0.0037, 0.0740)
+SPTR_dist = shape.Triangle(0.0037, 0.006, 0.0740)
 
 # State motor fuel tax rates
-SMFTR_dist = shape.Uniform(0.0895, 0.586)
+SMFTR_dist = shape.Triangle(0.0895, 0.25, 0.586)
 
 # State utility tax rates
-SUTR_dist = shape.Uniform(0, 0.05)
+SUTR_dist = shape.Triangle(0, 0.02, 0.05)
 
 # State sales tax rates
-SSTR_dist = shape.Uniform(0, 0.0725)
+SSTR_dist = shape.Triangle(0, 0.055, 0.0725)
 
 # Electricity prices, range from 0.0471 to 0.2610 USD/kWh
-EP_dist = shape.Uniform(0.0471, 0.2610)
+EP_dist = shape.Triangle(0.0471, 0.06, 0.2610)
 
 # Feedstock prices, distribution taken from Yoel's example
 lipidcane = lc.lipidcane
@@ -122,7 +121,7 @@ FP_U = lipidcane.price * 1.1 # max price
 GP_dist = shape.Uniform(2.103, 2.934)
 
 # Location capital cost factors
-LCCF_dist = shape.Uniform(0.82, 2.56)
+LCCF_dist = shape.Triangle(0.82, 1, 2.56)
 
 # Electricty generation efficiency
 EGeff_dist = shape.Triangle(0.7,0.85,0.9)
@@ -166,6 +165,11 @@ elec_utility = bst.PowerUtility
                   distribution=EP_dist)
 def set_elec_price(electricity_price):
       elec_utility.price = electricity_price
+      
+# Location capital cost factor
+@model.parameter(element='Location', kind='isolated', units='unitless', distribution=LCCF_dist)
+def set_LCCF(LCCF):
+    tea.F_investment = LCCF
       
 # Feedstock price
 @model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
@@ -238,40 +242,105 @@ model.parameter(lc.set_lipid_fraction, element=lc.lipidcane,
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 5
+N_samples = 1000
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
-model.evaluate()
-table = model.table
+# model.evaluate()
+# table = model.table
 
-### Perform correlation analysis
-sp_rho_table, sp_p_table = model.spearman_r()
+## Perform correlation analysis
+# sp_rho_table, sp_p_table = model.spearman_r()
 
 
 ### Plot across coordinate
+##Electricity price
+# parameters = list(model.get_parameters())
+# parameters.remove(set_elec_price)
+# model_without_electricity = bst.Model(lc.lipidcane_sys, 
+#                                       metrics=model.metrics,
+#                                       parameters=parameters,
+#                                       exception_hook='raise')
+# samples = model_without_electricity.sample(N_samples, rule)
+# model_without_electricity.load_samples(samples)
+# folder = os.path.dirname(__file__)
+# dct = model_without_electricity.evaluate_across_coordinate(
+#     'Electricity price',
+#     set_elec_price,
+#     np.linspace(
+#         set_elec_price.distribution.lower.min(),
+#         set_elec_price.distribution.upper.max(),
+#         10,
+#     ),
+#     xlfile=os.path.join(folder, 'uncertainty_across_electricity.xlsx'),
+#     notify=True
+# )
 
+##Property tax
 parameters = list(model.get_parameters())
-parameters.remove(set_elec_price)
-model_without_electricity = bst.Model(lc.lipidcane_sys, 
+parameters.remove(set_state_property_tax)
+model_without_st_prop_tax = bst.Model(lc.lipidcane_sys, 
                                       metrics=model.metrics,
                                       parameters=parameters,
                                       exception_hook='raise')
-samples = model_without_electricity.sample(N_samples, rule)
-model_without_electricity.load_samples(samples)
+samples = model_without_st_prop_tax.sample(N_samples, rule)
+model_without_st_prop_tax.load_samples(samples)
 folder = os.path.dirname(__file__)
-dct = model_without_electricity.evaluate_across_coordinate(
-    'Electricity price',
-    set_elec_price,
+dct = model_without_st_prop_tax.evaluate_across_coordinate(
+    'Property tax rate',
+    set_state_property_tax,
     np.linspace(
-        set_elec_price.distribution.lower.min(),
-        set_elec_price.distribution.upper.max(),
+        set_state_property_tax.distribution.lower.min(),
+        set_state_property_tax.distribution.upper.max(),
         10,
     ),
-    xlfile=os.path.join(folder, 'uncertainty_across_electricity.xlsx'),
+    xlfile=os.path.join(folder, 'uncertainty_across_proptax.xlsx'),
     notify=True
 )
 
+##Fuel tax
+# parameters = list(model.get_parameters())
+# parameters.remove(set_motor_fuel_tax)
+# model_without_fuel_tax = bst.Model(lc.lipidcane_sys, 
+#                                       metrics=model.metrics,
+#                                       parameters=parameters,
+#                                       exception_hook='raise')
+# samples = model_without_fuel_tax.sample(N_samples, rule)
+# model_without_fuel_tax.load_samples(samples)
+# folder = os.path.dirname(__file__)
+# dct = model_without_fuel_tax.evaluate_across_coordinate(
+#     'Fuel tax rate',
+#     set_motor_fuel_tax,
+#     np.linspace(
+#         set_motor_fuel_tax.distribution.lower.min(),
+#         set_motor_fuel_tax.distribution.upper.max(),
+#         20,
+#     ),
+#     xlfile=os.path.join(folder, 'uncertainty_across_fueltax.xlsx'),
+#     notify=True
+# )
+
+##State income tax
+# parameters = list(model.get_parameters())
+# parameters.remove(set_state_income_tax)
+# model_without_st_income_tax = bst.Model(lc.lipidcane_sys, 
+#                                       metrics=model.metrics,
+#                                       parameters=parameters,
+#                                       exception_hook='raise')
+# samples = model_without_st_income_tax.sample(N_samples, rule)
+# model_without_st_income_tax.load_samples(samples)
+# folder = os.path.dirname(__file__)
+# dct = model_without_st_income_tax.evaluate_across_coordinate(
+#     'State income tax rate',
+#     set_state_income_tax,
+#     np.linspace(
+#         set_state_income_tax.distribution.lower.min(),
+#         set_state_income_tax.distribution.upper.max(),
+#         10,
+#     ),
+#     xlfile=os.path.join(folder, 'uncertainty_across_stincometax.xlsx'),
+#     notify=True
+# )
 
 # get_param_dct = lambda model: {p.name_with_units:p for p in model.get_parameters()}
 # def filter_parameters(model, df, threshold):
@@ -293,7 +362,7 @@ dct = model_without_electricity.evaluate_across_coordinate(
 # bst.plots.plot_montecarlo(model.table['Incentive 1']['MFSP Reduction [USD/gal]'])
 # bst.plots.plot_montecarlo(model.table['Incentive 8']['MFSP Reduction [USD/gal]'])
 # bst.plots.plot_montecarlo(model.table['Incentive 20']['MFSP Reduction [USD/gal]'])
-bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
+# bst.plots.plot_spearman(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 
 
 
