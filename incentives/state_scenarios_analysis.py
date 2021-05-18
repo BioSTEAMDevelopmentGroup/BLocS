@@ -12,53 +12,20 @@ from chaospy import distributions as shape
 import incentives as ti
 import numpy as np
 import pandas as pd
+import os
 
-state_scenarios_no_fed = {
-    'Alabama': {'Incentives' : (8,9),
-                'st_income_tax' : 0.065,
-                'property_tax' : 0.007,
-                'fuel_tax' : 0.24,
-                'utility_tax' : 0.02,
-                'sales_tax' : 0.04,
-                'elec_price' : 0.0601,
-                'LCCF' : 0.82},
-     'Alaska': {'Incentives' : (),
-                'st_income_tax' : 0.094,
-                'property_tax' : 0.00111,
-                'fuel_tax' : 0.0895,
-                'utility_tax' : 0.02,
-                'sales_tax' : 0.,
-                'elec_price' : 0.171,
-                'LCCF' : 2.56},
-     'Arizona': {'Incentives' : (),
-                'st_income_tax' : 0.049,
-                'property_tax' : 0.019,
-                'fuel_tax' : 0.19,
-                'utility_tax' : 0.02,
-                'sales_tax' : 0.056,
-                'elec_price' : 0.0655,
-                'LCCF' : 0.96},
-     'Arkansas': {'Incentives' : (),
-                'st_income_tax' : 0.065,
-                'property_tax' : 0.0066,
-                'fuel_tax' : 0.248,
-                'utility_tax' : 0.02,
-                'sales_tax' : 0.065,
-                'elec_price' : 0.0564,
-                'LCCF' : 0.85},
-     'California': {'Incentives' : (),
-                'st_income_tax' : 0.0884,
-                'property_tax' : 0.0075,
-                'fuel_tax' : 0.533,
-                'utility_tax' : 0.02,
-                'sales_tax' : 0.0725,
-                'elec_price' : 0.132,
-                'LCCF' : 1.1}}
+#Import state scenarios data
+folder = os.path.dirname(__file__)
+st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
+st_data = pd.read_excel(st_data_file, index_col=[0])
+
+states = ['Illinois',
+            'Pennsylvania'
+           ]
 
 tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
-tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 tea.fuel_tax = 0.332
 tea.sales_tax = 0.06
 tea.federal_income_tax = 0.35
@@ -69,6 +36,7 @@ tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
 tea.ethanol_group = lc.ethanol_production_units
 tea.biodiesel_group = lc.biodiesel_production_units
+tea.feedstock = lc.lipidcane
 tea.BT = lc.BT
 
 @model.metric(name='Net electricity production', units='MWh/yr')
@@ -100,15 +68,20 @@ def MFSP_reduction_getter(incentive_number):
         return (2.98668849 * tea.solve_price(lc.ethanol) - MFSP_box[0])/MFSP_box[0] * 100
     return MFSP
 
-for state in state_scenarios_no_fed.keys():
+for state in states:
     element = f"{state}"
-    model.metric(MFSP_getter(state_scenarios_no_fed[state]['Incentives']), 'MFSP', 'USD/gal', element)
-    model.metric(MFSP_reduction_getter(state_scenarios_no_fed[state]['Incentives']), 'MFSP Percent Reduction', '%', element)
+    tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
+    tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
+    bst.PowerUtility.price = st_data.loc[state]['Electricity Price (USD/kWh)']
+    tea.F_investment = st_data.loc[state]['Location Capital Cost Factor (dimensionless)']
+    incentive_numbers = ()#st_data.loc[state]['Incentives Available']
+    
+    model.metric(MFSP_getter(incentive_numbers), 'MFSP', 'USD/gal', element)
+    model.metric(MFSP_reduction_getter(incentive_numbers), 'MFSP Percent Reduction', '%', element)
     model.metric(get_exemptions, 'Excemptions', 'USD', element)
     model.metric(get_deductions, 'Deductions', 'USD', element)
     model.metric(get_credits, 'Credits', 'USD', element)
     model.metric(get_refunds, 'Refunds', 'USD', element)
-    
     
 # Feedstock prices, distribution taken from Yoel's example
 lipidcane = lc.lipidcane
@@ -128,21 +101,7 @@ def set_feed_price(feedstock_price):
 # Turbogenerator efficiency
 @model.parameter(element=lc.BT, units='%', distribution=EGeff_dist)
 def set_turbogenerator_efficiency(turbo_generator_efficiency):
-    lc.BT.turbogenerator_efficiency = turbo_generator_efficiency 
-
-# def MFSP_by_state(state):       
-#     tea.fuel_tax = state_scenarios_no_fed[state]['fuel_tax']
-#     tea.sales_tax = state_scenarios_no_fed[state]['sales_tax']
-#     tea.federal_income_tax = 0.35
-#     tea.state_income_tax = state_scenarios_no_fed[state]['st_income_tax']
-#     tea.utility_tax = state_scenarios_no_fed[state]['utility_tax']
-#     tea.property_tax = state_scenarios_no_fed[state]['property_tax']
-#     bst.PowerUtility.price = state_scenarios_no_fed[state]['elec_price']
-#     tea.ethanol_product = lc.ethanol
-#     tea.biodiesel_product = lc.biodiesel
-#     tea.ethanol_group = lc.ethanol_production_units
-#     tea.biodiesel_group = lc.biodiesel_production_units
-#     tea.BT = lc.BT    
+    lc.BT.turbogenerator_efficiency = turbo_generator_efficiency  
     
 np.random.seed(1688)
 N_samples = 5
@@ -150,4 +109,3 @@ rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
 model.evaluate
-    # return model.table

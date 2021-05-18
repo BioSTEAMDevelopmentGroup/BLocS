@@ -22,7 +22,7 @@ tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
 tea.fuel_tax = 0.
 tea.sales_tax = 0.
 tea.federal_income_tax = 0.35
-tea.state_income_tax = 0.12
+tea.state_income_tax = 0
 tea.utility_tax = 0.
 tea.ethanol_product = lc.ethanol
 tea.biodiesel_product = lc.biodiesel
@@ -31,6 +31,7 @@ tea.biodiesel_group = lc.biodiesel_production_units
 tea.feedstock = lc.lipidcane
 tea.F_investment = 1
 tea.BT = lc.BT
+bst.PowerUtility.price = 0.065
 
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
@@ -61,31 +62,31 @@ def MFSP_getter(incentive_number):
         return 2.98668849 * tea.solve_price(lc.ethanol)
     return MFSP
 
-def MFSP_reduction_getter(incentive_number):
-    def MFSP():
-        tea.incentive_numbers = (incentive_number,)
-        return (2.98668849 * tea.solve_price(lc.ethanol) - MFSP_baseline_box[0])
-    return MFSP
+# def MFSP_reduction_getter(incentive_number):
+#     def MFSP():
+#         tea.incentive_numbers = (incentive_number,)
+#         return (2.98668849 * tea.solve_price(lc.ethanol) - MFSP_baseline_box[0])
+#     return MFSP
 
-for incentive_number in range(1, 24):
-    # if incentive_number == 21: continue # Doesn't work yet
-    element = f"Incentive {incentive_number}"
-    model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
-    model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
-    model.metric(get_exemptions, 'Excemptions', 'USD', element)
-    model.metric(get_deductions, 'Deductions', 'USD', element)
-    model.metric(get_credits, 'Credits', 'USD', element)
-    model.metric(get_refunds, 'Refunds', 'USD', element)
+# for incentive_number in range(1, 24):
+#     # if incentive_number == 21: continue # Doesn't work yet
+#     element = f"Incentive {incentive_number}"
+#     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
+#     model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
+#     model.metric(get_exemptions, 'Excemptions', 'USD', element)
+#     model.metric(get_deductions, 'Deductions', 'USD', element)
+#     model.metric(get_credits, 'Credits', 'USD', element)
+#     model.metric(get_refunds, 'Refunds', 'USD', element)
 
-@model.metric(name="MFSP Reduction", units='USD/gal', element='Incentive 24')
-def MFSP():
-    tea.incentive_numbers = ()
-    tea.depreciation_incentive_24(True)
-    MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
-    tea.depreciation_incentive_24(False)
-    MFSP_baseline = 2.98668849 * tea.solve_price(lc.ethanol)
-    np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0], rtol=1e-3)
-    return MFSP - MFSP_baseline_box[0]
+# @model.metric(name="MFSP Reduction", units='USD/gal', element='Incentive 24')
+# def MFSP():
+#     tea.incentive_numbers = ()
+#     tea.depreciation_incentive_24(True)
+#     MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
+#     tea.depreciation_incentive_24(False)
+#     MFSP_baseline = 2.98668849 * tea.solve_price(lc.ethanol)
+#     np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0], rtol=1e-3)
+#     return MFSP - MFSP_baseline_box[0]
 
 ### Create parameter distributions ============================================
 
@@ -130,46 +131,46 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 ## Highly relevant contextual parameters
 
 # Federal income tax 
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
-def set_fed_income_tax(Federal_income_tax_rate):
-    tea.federal_income_tax = Federal_income_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
+# def set_fed_income_tax(Federal_income_tax_rate):
+#     tea.federal_income_tax = Federal_income_tax_rate
     
-# State income tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
-def set_state_income_tax(State_income_tax_rate):
-    tea.state_income_tax = State_income_tax_rate
+# # State income tax
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
+# def set_state_income_tax(State_income_tax_rate):
+#     tea.state_income_tax = State_income_tax_rate
     
-# State property tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
-def set_state_property_tax(State_property_tax_rate):
-    tea.property_tax = State_property_tax_rate
+# # State property tax
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
+# def set_state_property_tax(State_property_tax_rate):
+#     tea.property_tax = State_property_tax_rate
     
 # State motor fuel tax
-@model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
-def set_motor_fuel_tax(fuel_tax_rate):
-    tea.fuel_tax = fuel_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
+# def set_motor_fuel_tax(fuel_tax_rate):
+#     tea.fuel_tax = fuel_tax_rate
 
 #State utility tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SUTR_dist)
-def set_util_tax(util_tax_rate):
-    tea.utility_tax = util_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SUTR_dist)
+# def set_util_tax(util_tax_rate):
+#     tea.utility_tax = util_tax_rate
     
 # State sales tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
-def set_sales_tax(sales_tax_rate):
-    tea.sales_tax = sales_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
+# def set_sales_tax(sales_tax_rate):
+#     tea.sales_tax = sales_tax_rate
 
 # Electricity price
-elec_utility = bst.PowerUtility
-@model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
-                  distribution=EP_dist)
-def set_elec_price(electricity_price):
-      elec_utility.price = electricity_price
+# elec_utility = bst.PowerUtility
+# @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
+#                   distribution=EP_dist)
+# def set_elec_price(electricity_price):
+#       elec_utility.price = electricity_price
       
-# Location capital cost factor
-@model.parameter(element='Location', kind='isolated', units='unitless', distribution=LCCF_dist)
-def set_LCCF(LCCF):
-    tea.F_investment = LCCF
+# # Location capital cost factor
+# @model.parameter(element='Location', kind='isolated', units='unitless', distribution=LCCF_dist)
+# def set_LCCF(LCCF):
+#     tea.F_investment = LCCF
       
 # Feedstock price
 @model.parameter(element=lipidcane, kind='isolated', units='USD/kg',
@@ -242,19 +243,19 @@ model.parameter(lc.set_lipid_fraction, element=lc.lipidcane,
 
 ### Perform Monte Carlo analysis ===============================================
 np.random.seed(1688)
-N_samples = 1000
+N_samples = 2000
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
-# model.evaluate()
-# table = model.table
+model.evaluate()
+table = model.table
 
 ## Perform correlation analysis
 # sp_rho_table, sp_p_table = model.spearman_r()
 
 
 ### Plot across coordinate
-##Electricity price
+##Electricity price, typical taxes
 # parameters = list(model.get_parameters())
 # parameters.remove(set_elec_price)
 # model_without_electricity = bst.Model(lc.lipidcane_sys, 
@@ -272,31 +273,31 @@ model.load_samples(samples)
 #         set_elec_price.distribution.upper.max(),
 #         10,
 #     ),
-#     xlfile=os.path.join(folder, 'uncertainty_across_electricity.xlsx'),
+#     xlfile=os.path.join(folder, 'uncertainty_across_electricity_typtax.xlsx'),
 #     notify=True
 # )
 
-##Property tax
-parameters = list(model.get_parameters())
-parameters.remove(set_state_property_tax)
-model_without_st_prop_tax = bst.Model(lc.lipidcane_sys, 
-                                      metrics=model.metrics,
-                                      parameters=parameters,
-                                      exception_hook='raise')
-samples = model_without_st_prop_tax.sample(N_samples, rule)
-model_without_st_prop_tax.load_samples(samples)
-folder = os.path.dirname(__file__)
-dct = model_without_st_prop_tax.evaluate_across_coordinate(
-    'Property tax rate',
-    set_state_property_tax,
-    np.linspace(
-        set_state_property_tax.distribution.lower.min(),
-        set_state_property_tax.distribution.upper.max(),
-        10,
-    ),
-    xlfile=os.path.join(folder, 'uncertainty_across_proptax.xlsx'),
-    notify=True
-)
+##Property tax, typical taxes
+# parameters = list(model.get_parameters())
+# parameters.remove(set_state_property_tax)
+# model_without_st_prop_tax = bst.Model(lc.lipidcane_sys, 
+#                                       metrics=model.metrics,
+#                                       parameters=parameters,
+#                                       exception_hook='raise')
+# samples = model_without_st_prop_tax.sample(N_samples, rule)
+# model_without_st_prop_tax.load_samples(samples)
+# folder = os.path.dirname(__file__)
+# dct = model_without_st_prop_tax.evaluate_across_coordinate(
+#     'Property tax rate',
+#     set_state_property_tax,
+#     np.linspace(
+#         set_state_property_tax.distribution.lower.min(),
+#         set_state_property_tax.distribution.upper.max(),
+#         10,
+#     ),
+#     xlfile=os.path.join(folder, 'uncertainty_across_proptax_typtax.xlsx'),
+#     notify=True
+# )
 
 ##Fuel tax
 # parameters = list(model.get_parameters())
@@ -320,7 +321,7 @@ dct = model_without_st_prop_tax.evaluate_across_coordinate(
 #     notify=True
 # )
 
-##State income tax
+##State income tax, typical taxes
 # parameters = list(model.get_parameters())
 # parameters.remove(set_state_income_tax)
 # model_without_st_income_tax = bst.Model(lc.lipidcane_sys, 
@@ -338,7 +339,29 @@ dct = model_without_st_prop_tax.evaluate_across_coordinate(
 #         set_state_income_tax.distribution.upper.max(),
 #         10,
 #     ),
-#     xlfile=os.path.join(folder, 'uncertainty_across_stincometax.xlsx'),
+#     xlfile=os.path.join(folder, 'uncertainty_across_stincometax_typtax.xlsx'),
+#     notify=True
+# )
+
+##LCCF, typical taxes
+# parameters = list(model.get_parameters())
+# parameters.remove(set_LCCF)
+# model_without_LCCF = bst.Model(lc.lipidcane_sys, 
+#                                       metrics=model.metrics,
+#                                       parameters=parameters,
+#                                       exception_hook='raise')
+# samples = model_without_LCCF.sample(N_samples, rule)
+# model_without_LCCF.load_samples(samples)
+# folder = os.path.dirname(__file__)
+# dct = model_without_LCCF.evaluate_across_coordinate(
+#     'LCCF',
+#     set_LCCF,
+#     np.linspace(
+#         set_LCCF.distribution.lower.min(),
+#         set_LCCF.distribution.upper.max(),
+#         10,
+#     ),
+#     xlfile=os.path.join(folder, 'uncertainty_across_LCCF_typtax.xlsx'),
 #     notify=True
 # )
 

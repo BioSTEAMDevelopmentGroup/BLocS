@@ -28,18 +28,20 @@ def set_x_axis(with_labels=True):
         plt.xticks(x_ticks, ())
         
 
-readxl = lambda sheet: pd.read_excel(os.path.join(folder, 'uncertainty_across_proptax.xlsx'),
+readxl = lambda sheet: pd.read_excel(os.path.join(folder, 'uncertainty_across_LCCF_typtax.xlsx'),
                                       sheet_name=sheet,
                                      index_col=0)
 
 MFSP = readxl('Incentive 1 MFSP Reduction')        
-x_tick_vals = np.array(MFSP.columns) * 100 #to make percentage
+x_tick_vals = np.array(MFSP.columns) #* 100 #to make percentage
 
 # Baseline MFSP
-# bsl_MFSP = readxl('Biorefinery Baseline MFSP')
-# plt.ylabel('Baseline MFSP [USD/gal]')
-# plt.xlabel('State income tax rate [%]')
-# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, bsl_MFSP)[2]
+bsl_MFSP = readxl('Biorefinery Baseline MFSP')
+plt.ylabel('Non-incentivized MFSP [USD/gal]')
+plt.xlabel('Location capital cost factor [unitless]')
+ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, bsl_MFSP,light_color=colors.CABBI_green_soft.RGBn,dark_color=colors.CABBI_green.RGBn)[2]
+plt.ylim([0,7.5])
+bst.plots.plot_scatter_points(1, 2.23)
 
 # %% GROUP 1 - PROPERTY TAX EXEMPTIONS NOT APPLIED TO SPECIFIC EQUIPMENT
 # use 'uncertainty_across_prop_tax.xlsx'
@@ -83,7 +85,6 @@ x_tick_vals = np.array(MFSP.columns) * 100 #to make percentage
 # plt.xlabel('State income tax rate [%]')
 # ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc9_MFSP_r,light_color=colors.yellow_tint.RGBn,dark_color=colors.yellow.RGBn)[2]
 
-
 # # MFSP reduction with Incentive 10
 # Inc10_MFSP_r = readxl('Incentive 10 MFSP Reduction')
 # plt.ylabel('MFSP Reduction [USD/gal]')
@@ -100,23 +101,46 @@ x_tick_vals = np.array(MFSP.columns) * 100 #to make percentage
 # Inc15_MFSP_r = readxl('Incentive 15 MFSP Reduction')
 # plt.ylabel('MFSP Reduction [USD/gal]')
 # plt.xlabel('State income tax rate [%]')
-# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc15_MFSP_r,light_color=colors.red_shade.RGBn,dark_color=colors.red_dark.RGBn)[2]
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc15_MFSP_r,light_color=colors.CABBI_green_soft.RGBn,dark_color=colors.CABBI_teal_green.RGBn)[2]
 
-
-# MFSP reduction with Incentive 11
-# Inc11_MFSP_r = readxl('Incentive 11 MFSP Reduction')
-# plt.ylabel('MFSP Reduction [USD/gal]')
-# plt.xlabel('State income tax rate [%]')
-# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc11_MFSP_r,light_color=colors.blue_shade.RGBn,dark_color=colors.blue_dark.RGBn)[2]
-
-
-
+# %% GROUP 4 STATE INCOME TAX CREDITS, VARIED PARAMETERS
+# use 'uncertainty_across_stincometax.xlsx'
 # MFSP reduction with Incentive 13
 # Inc13_MFSP_r = readxl('Incentive 13 MFSP Reduction')
 # plt.ylabel('MFSP Reduction [USD/gal]')
 # plt.xlabel('State income tax rate [%]')
 # ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc13_MFSP_r,light_color=colors.red_shade.RGBn,dark_color=colors.red_dark.RGBn)[2]
 
+# # MFSP reduction with Incentive 17
+# Inc17_MFSP_r = readxl('Incentive 17 MFSP Reduction')
+# plt.ylabel('MFSP Reduction [USD/gal]')
+# plt.xlabel('State income tax rate [%]')
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc17_MFSP_r,light_color=colors.yellow_tint.RGBn,dark_color=colors.yellow.RGBn)[2]
+
+# # MFSP reduction with Incentive 18
+# Inc18_MFSP_r = readxl('Incentive 18 MFSP Reduction')
+# plt.ylabel('MFSP Reduction [USD/gal]')
+# plt.xlabel('State income tax rate [%]')
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc18_MFSP_r,light_color=colors.CABBI_blue.RGBn,dark_color=colors.CABBI_teal.RGBn)[2]
+
+# # MFSP reduction with Incentive 19
+# Inc19_MFSP_r = readxl('Incentive 19 MFSP Reduction')
+# plt.ylabel('MFSP Reduction [USD/gal]')
+# plt.xlabel('State income tax rate [%]')
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc19_MFSP_r,light_color=colors.neutral.RGBn,dark_color=colors.CABBI_black.RGBn)[2]
+
+# %%
+# MFSP reduction with Incentive 11
+# Inc11_MFSP_r = readxl('Incentive 11 MFSP Reduction')
+# plt.ylabel('MFSP Reduction [USD/gal]')
+# plt.xlabel('State income tax rate [%]')
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc11_MFSP_r,light_color=colors.blue_shade.RGBn,dark_color=colors.blue_dark.RGBn)[2]
+
+# # MFSP reduction with Incentive 14
+# Inc14_MFSP_r = readxl('Incentive 14 MFSP Reduction')
+# plt.ylabel('MFSP Reduction [USD/gal]')
+# plt.xlabel('State income tax rate [%]')
+# ys = bst.plots.plot_montecarlo_across_coordinate(x_tick_vals, Inc14_MFSP_r,light_color=colors.yellow_tint.RGBn,dark_color=colors.yellow.RGBn)[2]
 
 
 # MFSP with Incentive 1
