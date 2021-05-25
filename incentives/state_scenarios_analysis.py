@@ -41,7 +41,7 @@ tea.BT = lc.BT
 
 @model.metric(name='Net electricity production', units='MWh/yr')
 def get_electricity_production():
-    return sum(i.power_utility.rate for i in lc.lipidcane_sys.units) * tea._operating_hours/1000
+    return sum(i.power_utility.rate for i in lc.lipidcane_sys.units) * tea.operating_hours/1000
 
 MFSP_box = [None]
 
@@ -56,15 +56,15 @@ get_deductions = lambda: tea.deductions.sum()
 get_credits = lambda: tea.credits.sum()
 get_refunds = lambda: tea.refunds.sum()
 
-def MFSP_getter(incentive_number):
+def MFSP_getter(incentive_numbers):
     def MFSP():
-        tea.incentive_numbers = (incentive_number,)
+        tea.incentive_numbers = incentive_numbers
         return 2.98668849 * tea.solve_price(lc.ethanol)
     return MFSP
 
-def MFSP_reduction_getter(incentive_number):
+def MFSP_reduction_getter(incentive_numbers):
     def MFSP():
-        tea.incentive_numbers = (incentive_number,)
+        tea.incentive_numbers = incentive_numbers
         return (2.98668849 * tea.solve_price(lc.ethanol) - MFSP_box[0])/MFSP_box[0] * 100
     return MFSP
 
@@ -108,4 +108,4 @@ N_samples = 5
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
-model.evaluate
+model.evaluate()

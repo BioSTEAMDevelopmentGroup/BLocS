@@ -64,7 +64,7 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         lang_factor = self.lang_factor
         converyor_costs = lang_factor * sum([i.purchase_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
-        operating_hours = self._operating_hours
+        operating_hours = self.operating_hours
         ethanol_product = self.ethanol_product
         biodiesel_product = self.biodiesel_product
         biodiesel_group = self.biodiesel_group
