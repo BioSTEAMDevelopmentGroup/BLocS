@@ -6,21 +6,65 @@ Created on Sun Oct  4 12:18:15 2020
 import os
 import pandas as pd
 import numpy as np
-from biorefineries import lipidcane as lc
+from biorefineries import corn as cn
+from biorefineries import sugarcane as sc
 from biorefineries import cornstover as cs
 import incentives as inct
 import biosteam as bst
     
 __all__ = (
+    'create_corn_tea',
+    'create_sugarcane_tea',
+    'create_cornstover_tea',
     'ConventionalIncentivesTEA',
     'CellulosicIncentivesTEA',
 )
 
+def create_corn_tea():
+    tea = cs.create_tea(cn.corn_sys, TEA=CellulosicIncentivesTEA)
+    tea.incentive_numbers = () # Empty for now
+    tea.fuel_tax = 0.
+    tea.sales_tax = 0.
+    tea.federal_income_tax = 0.35
+    tea.state_income_tax = 0.065
+    tea.property_tax = 0.013
+    tea.utility_tax = 0.
+    tea.ethanol_product = cn.ethanol
+    tea.ethanol_group = bst.UnitGroup(cn.corn_sys.units) # Assume all unit operations qualify
+    tea.feedstock = cn.corn
+    return tea
+
 def create_sugarcane_tea():
-    
+    tea = cs.create_tea(sc.sugarcane_sys, TEA=CellulosicIncentivesTEA)
+    tea.incentive_numbers = () # Empty for now
+    tea.fuel_tax = 0.
+    tea.sales_tax = 0.
+    tea.federal_income_tax = 0.35
+    tea.state_income_tax = 0.065
+    tea.property_tax = 0.013
+    tea.utility_tax = 0.
+    tea.ethanol_product = sc.ethanol
+    tea.ethanol_group = bst.UnitGroup(sc.sugarcane_sys.units) # Assume all unit operations qualify
+    tea.BT = sc.BT
+    tea.feedstock = sc.sugarcane
+    tea.property_tax = 0.001
+    return tea
 
 def create_cornstover_tea():
-    pass
+    tea = cs.create_tea(cs.cornstover_sys, TEA=CellulosicIncentivesTEA)
+    tea.incentive_numbers = () # Empty for now
+    tea.fuel_tax = 0.
+    tea.sales_tax = 0.
+    tea.federal_income_tax = 0.35
+    tea.state_income_tax = 0.065
+    tea.property_tax = 0.013
+    tea.utility_tax = 0.
+    tea.ethanol_product = cs.ethanol
+    tea.ethanol_group = bst.UnitGroup(cs.cornstover_sys.units) # Assume all unit operations qualify
+    tea.BT = cs.BT
+    tea.feedstock = cs.cornstover
+    tea.property_tax = 0.001
+    return tea
     
 
 class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
@@ -70,7 +114,10 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
     
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         lang_factor = self.lang_factor
-        converyor_costs = lang_factor * sum([i.purchase_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
+        if lang_factor:
+            converyor_costs = lang_factor * sum([i.purchase_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
+        else:
+            converyor_costs = sum([i.installed_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
         operating_hours = self.operating_hours
         ethanol_product = self.ethanol_product
         biodiesel_product = self.biodiesel_product
@@ -82,17 +129,26 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             # Ethanol in gal/yr
             ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  
             fuel_value += ethanol_product.cost * operating_hours
-            ethanol_eq = 1e6 * lang_factor * ethanol_group.get_purchase_cost()
+            if lang_factor:
+                ethanol_eq = 1e6 * lang_factor * ethanol_group.get_purchase_cost()
+            else:
+                ethanol_eq = 1e6 * ethanol_group.get_installed_cost()
         else:
             ethanol = ethanol_eq = ethanol_sales = 0.
         if biodiesel_product: 
             fuel_value += biodiesel_product.cost * operating_hours
-            biodiesel_eq = 1e6 * lang_factor * biodiesel_group.get_purchase_cost() 
+            if lang_factor:
+                biodiesel_eq = 1e6 * lang_factor * biodiesel_group.get_purchase_cost() 
+            else:
+                biodiesel_eq = 1e6 * biodiesel_group.get_installed_cost() 
         else:
             biodiesel_eq = 0.
         feedstock = self.feedstock
         feedstock_value = feedstock.cost * operating_hours
-        elec_eq = lang_factor * BT.purchase_cost if BT else 0.
+        if lang_factor:
+            elec_eq = lang_factor * BT.purchase_cost if BT else 0.
+        else:
+            elec_eq = BT.installed_cost if BT else 0.
         TCI = self.TCI
         wages = self.labor_cost
         FCI = self.FCI
@@ -178,7 +234,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
 
-class ConventionalIncentivesTEA(lc.ConventionalEthanolTEA):
+class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
     
     __init__ = CellulosicIncentivesTEA.__init__
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
