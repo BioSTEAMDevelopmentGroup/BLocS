@@ -11,11 +11,22 @@ from biorefineries import cornstover as cs
 import incentives as inct
 import biosteam as bst
     
-__all__ = ('IncentivesTEA',)
+__all__ = (
+    'ConventionalIncentivesTEA',
+    'CellulosicIncentivesTEA',
+)
 
-class IncentivesTEA(lc.ConventionalEthanolTEA):
+def create_sugarcane_tea():
+    
+
+def create_cornstover_tea():
+    pass
+    
+
+class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
     
     def __init__(self, *args, incentive_numbers=(), 
+                 property_tax=None,
                  state_income_tax=None,
                  federal_income_tax=None,
                  ethanol_product=None, 
@@ -56,10 +67,6 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
         return FCI
-        
-    def _FOC(self, FCI):
-        return (FCI*(self.property_insurance + self.maintenance + self.administration)
-                + self.labor_cost*(1+self.fringe_benefits+self.supplies))
     
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
         lang_factor = self.lang_factor
@@ -170,6 +177,19 @@ class IncentivesTEA(lc.ConventionalEthanolTEA):
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
+
+class ConventionalIncentivesTEA(lc.ConventionalEthanolTEA):
+    
+    __init__ = CellulosicIncentivesTEA.__init__
+    depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
+    _FCI = CellulosicIncentivesTEA._FCI
+    _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
+    
+    def _FOC(self, FCI):
+        return (FCI*(self.property_insurance + self.maintenance + self.administration)
+                + self.labor_cost*(1+self.fringe_benefits+self.supplies))
+    
+    
    
 # if __name__ == '__main__':
 #     IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
