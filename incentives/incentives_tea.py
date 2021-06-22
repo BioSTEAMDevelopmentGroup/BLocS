@@ -21,7 +21,7 @@ __all__ = (
 )
 
 def create_corn_tea():
-    tea = cs.create_tea(cn.corn_sys, TEA=CellulosicIncentivesTEA)
+    tea = cn.create_tea(cn.corn_sys, cls=ConventionalIncentivesTEA)
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
@@ -35,7 +35,7 @@ def create_corn_tea():
     return tea
 
 def create_sugarcane_tea():
-    tea = cs.create_tea(sc.sugarcane_sys, TEA=CellulosicIncentivesTEA)
+    tea = sc.create_tea(sc.sugarcane_sys, cls=ConventionalIncentivesTEA)
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
@@ -51,7 +51,7 @@ def create_sugarcane_tea():
     return tea
 
 def create_cornstover_tea():
-    tea = cs.create_tea(cs.cornstover_sys, TEA=CellulosicIncentivesTEA)
+    tea = cs.create_tea(cs.cornstover_sys, cls=CellulosicIncentivesTEA)
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
@@ -85,6 +85,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
                  F_investment=1.,
                  **kwargs):
         super().__init__(*args, **kwargs)
+        self.property_tax = property_tax
         self.state_income_tax = state_income_tax
         self.federal_income_tax = federal_income_tax
         self.incentive_numbers = incentive_numbers
@@ -236,10 +237,41 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
 
 class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
     
-    __init__ = CellulosicIncentivesTEA.__init__
+    def __init__(self, *args, incentive_numbers=(), 
+                 state_income_tax=None,
+                 federal_income_tax=None,
+                 ethanol_product=None, 
+                 biodiesel_product=None,
+                 ethanol_group=None, 
+                 biodiesel_group=None,
+                 sales_tax=None,
+                 fuel_tax=None,
+                 utility_tax=None,
+                 BT=None,
+                 feedstock=None,
+                 F_investment=1.,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self.state_income_tax = state_income_tax
+        self.federal_income_tax = federal_income_tax
+        self.incentive_numbers = incentive_numbers
+        self.ethanol_product = ethanol_product
+        self.biodiesel_product = biodiesel_product
+        self.ethanol_group = ethanol_group
+        self.biodiesel_group = biodiesel_group
+        self.sales_tax = sales_tax
+        self.fuel_tax = fuel_tax
+        self.feedstock = feedstock
+        self.utility_tax = utility_tax
+        self.F_investment = F_investment
+        self.BT = BT
+        
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
-    _FCI = CellulosicIncentivesTEA._FCI
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
+    
+    def _FCI(self, TDC):
+        self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
+        return FCI
     
     def _FOC(self, FCI):
         return (FCI*(self.property_insurance + self.maintenance + self.administration)
