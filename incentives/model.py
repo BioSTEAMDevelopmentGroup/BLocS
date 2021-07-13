@@ -23,73 +23,112 @@ st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
 st_data = pd.read_excel(st_data_file, index_col=[0])
 
 states = [
-          'Arkansas',
-          'California',
-          'Delaware',
-          'Georgia',
-          'Idaho',
-          'Illinois',
-          'Indiana',
-          'Maryland',
-          'Minnesota',
-          'Mississippi',
-          'Missouri',
-          'New York',
-          'North Carolina',
-          'North Dakota',
-          'Ohio',
-          'Oklahoma',
-          'Pennsylvania',
-          'South Dakota',
-          'Tennessee',
-          'Texas',
-          'Wisconsin',
-           ]
+            'Alaska',
+            'Arizona',
+            'Arkansas',
+            'California',
+            'Connecticut',
+            'Delaware',
+            'Florida',
+            'Georgia',
+            'Idaho',
+            'Illinois',
+            'Indiana',
+            'Maine',
+            'Maryland',
+            'Massachusetts',
+            'Minnesota',
+            'Mississippi',
+            'Missouri',
+            'Nevada',
+            'New Hampshire',
+            'New Jersey',
+            'New York',
+            'North Carolina',
+            'North Dakota',
+            'Ohio',
+            'Oklahoma',
+            'Pennsylvania',
+            'Rhode Island',
+            'South Dakota',
+            'Tennessee',
+            'Texas',
+            'Vermont',
+            'Washington',
+            'West Virginia',
+            'Wisconsin',
+            'Wyoming'
+            ]
 
-states_w_inc = ['Alabama',
+states_w_inc = [
+                'Alabama',
                 'Colorado',
+                # 'Hawaii',
                 'Iowa',
                 'Kansas',
                 'Kentucky',
                 'Louisiana',
                 'Michigan',
+                'Montana',
                 'Nebraska',
+                'New Mexico',
+                'Oregon',
                 'South Carolina',
+                'Utah',
                 'Virginia'
                 ]
 
 all_states = [
-          'Arkansas',
-          'California',
-          'Delaware',
-          'Georgia',
-          'Idaho',
-          'Illinois',
-          'Indiana',
-          'Maryland',
-          'Minnesota',
-          'Mississippi',
-          'Missouri',
-          'New York',
-          'North Carolina',
-          'North Dakota',
-          'Ohio',
-          'Oklahoma',
-          'Pennsylvania',
-          'South Dakota',
-          'Tennessee',
+           # 'Alaska',
+           'Arizona',
+           'Arkansas',
+           'California',
+           # 'Connecticut',
+           'Delaware',
+          'Florida',
+           'Georgia',
+           'Idaho',
+           'Illinois',
+           'Indiana',
+           # 'Maine',
+           'Maryland',
+           # 'Massachusetts',
+           'Minnesota',
+           'Mississippi',
+           'Missouri',
+           # 'Nevada',
+           # 'New Hampshire',
+           'New Jersey',
+           'New York',
+           'North Carolina',
+           'North Dakota',
+           'Ohio',
+           'Oklahoma',
+           'Pennsylvania',
+           # 'Rhode Island',
+           'South Dakota',
+           'Tennessee',
           'Texas',
-          'Wisconsin',
-          'Alabama',
-          'Colorado',
-          'Iowa',
-          'Kansas',
-          'Kentucky',
+           # 'Vermont',
+           'Washington',
+           'West Virginia',
+           'Wisconsin',
+           'Wyoming',
+           'Alabama',
+           'Colorado',
+          # 'Hawaii',
+           'Iowa',
+           'Kansas',
+           'Kentucky',
           'Louisiana',
-          'Michigan',
-          'Nebraska',
-          'South Carolina',
-          'Virginia'
+           'Michigan',
+           'Montana',
+           'Nebraska',
+           'New Mexico',
+           'Oregon',
+           'South Carolina',
+           'Utah',
+           'Virginia'
            ]
 
 def create_model(biorefinery):
@@ -106,6 +145,7 @@ def create_model(biorefinery):
     
     model = bst.Model(tea.system, exception_hook='raise')
     bst.PowerUtility.price = 0.0685
+    
 
     def MFSP_getter(state):
         def MFSP():
@@ -139,13 +179,13 @@ def create_model(biorefinery):
             elif state == 'Kansas':
                 tea.incentive_numbers = (2,)
             elif state == 'Kentucky':
-                tea.incentive_numbers = (13,14,22)
+                tea.incentive_numbers = (13,14,22) #Incentive 14 should only be simulated here for corn or cellulosic feedstocks, i.e., NOT sugarcane
             elif state == 'Louisiana':
                 tea.incentive_numbers = (15,)
             elif state == 'Michigan':
                 tea.incentive_numbers = (3,)
             elif state == 'Montana':
-                tea.incentive_numbers = (4,23)
+                tea.incentive_numbers = (4,23) #TODO Incentive 23 should only be simulated here for grain feedstocks, i.e., corn
             elif state == 'Nebraska':
                 tea.incentive_numbers = (5,)
             elif state == 'New Mexico':
@@ -170,19 +210,25 @@ def create_model(biorefinery):
     def get_electricity_production():
         return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
     
-    @model.metric(name="Baseline MFSP", units='USD/gal')
+    @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
+        tea.state_income_tax = 0
+        tea.property_tax = 0
+        tea.fuel_tax = 0
+        tea.sales_tax = 0
+        bst.PowerUtility.price = 0.0571675
+        tea.F_investment = 1
         tea.incentive_numbers = ()
         MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
         return MFSP
     
-    for state in states:
+    for state in all_states:
         element = f"{state}"
         model.metric(MFSP_getter(state), 'MFSP', 'USD/gal', element)
         
     for state in states_w_inc:
         element = f"{state}"
-        model.metric(MFSP_w_inc_getter(state), 'MFSP', 'USD/gal', element)
+        model.metric(MFSP_w_inc_getter(state), 'Inc MFSP', 'USD/gal', element)
     
     
     ### Create parameter distributions ============================================
