@@ -114,6 +114,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         return FCI
     
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
+        taxable_cashflow[taxable_cashflow < 0.] = 0.
         lang_factor = self.lang_factor
         if lang_factor:
             converyor_costs = lang_factor * sum([i.purchase_cost for i in self.units if isinstance(i, bst.ConveyingBelt)])
@@ -224,8 +225,6 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.deductions = deductions
         self.credits = credits
         self.refunds = refunds
-        # taxable_cashflow = taxable_cashflow - property_tax_arr
-        taxable_cashflow[taxable_cashflow < 0.] = 0.
         index = taxable_cashflow > 0.
         #i included utility tax here
         tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr
