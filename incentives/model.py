@@ -61,74 +61,74 @@ states = [
             ]
 
 states_w_inc = [
-                'Alabama',
-                'Colorado',
-                # 'Hawaii',
-                'Iowa',
-                'Kansas',
-                'Kentucky',
+                # 'Alabama',
+                # 'Colorado',
+                'Hawaii',
+                # 'Iowa',
+                # 'Kansas',
+                # 'Kentucky',
                 'Louisiana',
-                'Michigan',
-                'Montana',
-                'Nebraska',
-                'New Mexico',
-                'Oregon',
-                'South Carolina',
-                'Utah',
-                'Virginia'
+                # 'Michigan',
+                # 'Montana',
+                # 'Nebraska',
+                # 'New Mexico',
+                # 'Oregon',
+                # 'South Carolina',
+                # 'Utah',
+                # 'Virginia'
                 ]
 
 all_states = [
            # 'Alaska',
-           'Arizona',
-           'Arkansas',
-           'California',
+           # 'Arizona',
+           # 'Arkansas',
+           # 'California',
            # 'Connecticut',
-           'Delaware',
+           # 'Delaware',
           'Florida',
-           'Georgia',
-           'Idaho',
-           'Illinois',
-           'Indiana',
+           # 'Georgia',
+           # 'Idaho',
+           # 'Illinois',
+           # 'Indiana',
            # 'Maine',
-           'Maryland',
+           # 'Maryland',
            # 'Massachusetts',
-           'Minnesota',
-           'Mississippi',
-           'Missouri',
+           # 'Minnesota',
+           # 'Mississippi',
+           # 'Missouri',
            # 'Nevada',
            # 'New Hampshire',
-           'New Jersey',
-           'New York',
-           'North Carolina',
-           'North Dakota',
-           'Ohio',
-           'Oklahoma',
-           'Pennsylvania',
+           # 'New Jersey',
+           # 'New York',
+           # 'North Carolina',
+           # 'North Dakota',
+           # 'Ohio',
+           # 'Oklahoma',
+           # 'Pennsylvania',
            # 'Rhode Island',
-           'South Dakota',
-           'Tennessee',
+           # 'South Dakota',
+           # 'Tennessee',
           'Texas',
            # 'Vermont',
-           'Washington',
-           'West Virginia',
-           'Wisconsin',
-           'Wyoming',
-           'Alabama',
-           'Colorado',
-          # 'Hawaii',
-           'Iowa',
-           'Kansas',
-           'Kentucky',
+           # 'Washington',
+           # 'West Virginia',
+           # 'Wisconsin',
+           # 'Wyoming',
+           # 'Alabama',
+           # 'Colorado',
+           'Hawaii',
+           # 'Iowa',
+           # 'Kansas',
+           # 'Kentucky',
           'Louisiana',
-           'Michigan',
-           'Montana',
-           'Nebraska',
-           'New Mexico',
-           'Oregon',
-           'South Carolina',
-           'Utah',
-           'Virginia'
+           # 'Michigan',
+           # 'Montana',
+           # 'Nebraska',
+           # 'New Mexico',
+           # 'Oregon',
+           # 'South Carolina',
+           # 'Utah',
+           # 'Virginia'
            ]
 
 def create_model(biorefinery):
@@ -210,6 +210,14 @@ def create_model(biorefinery):
     def get_electricity_production():
         return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
     
+    @model.metric(name='Ethanol production', units='gal/yr')
+    def get_ethanol_production():
+        return tea.ethanol_product.F_mass * 2.98668849 * tea.operating_hours
+
+    @model.metric(name='Total capital investment', units='USD')
+    def get_TCI():
+        return tea.TCI
+    
     @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
         tea.state_income_tax = 0
@@ -222,6 +230,8 @@ def create_model(biorefinery):
         MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
         return MFSP
     
+    get_inc_value = lambda: tea.exemptions.sum() + tea.deductions.sum() + tea.credits.sum()+ tea.refunds.sum()
+    
     for state in all_states:
         element = f"{state}"
         model.metric(MFSP_getter(state), 'MFSP', 'USD/gal', element)
@@ -229,6 +239,7 @@ def create_model(biorefinery):
     for state in states_w_inc:
         element = f"{state}"
         model.metric(MFSP_w_inc_getter(state), 'Inc MFSP', 'USD/gal', element)
+        model.metric(get_inc_value, 'Inc value', 'USD', element)
     
     
     ### Create parameter distributions ============================================
@@ -236,12 +247,6 @@ def create_model(biorefinery):
     feedstock = tea.feedstock
     FP_L = feedstock.price * 0.9 # min price
     FP_U = feedstock.price * 1.1 # max price
-    
-    # Gasoline prices, USD/gal
-    GP_dist = shape.Uniform(2.103, 2.934)
-    
-    # Location capital cost factors
-    LCCF_dist = shape.Triangle(0.82, 1, 2.56)
     
     # Electricty generation efficiency
     EGeff_dist = shape.Triangle(0.7,0.85,0.9)

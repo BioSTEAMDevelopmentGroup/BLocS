@@ -98,7 +98,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.feedstock = feedstock
         self.utility_tax = utility_tax
         self.F_investment = F_investment
-        self.BT = BT 
+        self.BT = BT
     
     def depreciation_incentive_24(self, switch):
         if switch:
@@ -189,11 +189,12 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax
         purchase_cost_arr = construction_flow(self.purchase_cost)
-        sales_tax_arr = None if sales_tax is None else purchase_cost_arr * sales_tax
+        sales_arr = purchase_cost_arr + feedstock_value_arr
+        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax
         #here i took the absolute value of utility cost bc it will likely always be negative
         util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac)
         util_tax_arr = self.utility_tax * util_cost_arr
-        sales_arr = taxable_property_arr + feedstock_value_arr
+        
         exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
             self.incentive_numbers,
             start=self._start,
@@ -264,6 +265,7 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.utility_tax = utility_tax
         self.F_investment = F_investment
         self.BT = BT
+        self.lang_factor = 3
         
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
@@ -276,64 +278,3 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         return (FCI*(self.property_insurance + self.maintenance + self.administration)
                 + self.labor_cost*(1+self.fringe_benefits+self.supplies))
     
-    
-   
-# if __name__ == '__main__':
-#     IRR_without_incentives = lc.lipidcane_tea.solve_IRR()
-#     tea = lc.create_tea(lc.lipidcane_sys, IncentivesTEA)
-#     tea.incentive_numbers = tuple(range(1, 21)) + tuple(range(22, 24))
-#     tea.fuel_tax = 0.
-#     tea.sales_tax = 0.
-#     tea.sales_tax = 0.
-#     tea.federal_income_tax = 0.35
-#     tea.state_income_tax = 0. # TODO: Check this
-#     tea.ethanol_product = lc.ethanol
-#     tea.biodiesel_product = lc.biodiesel
-#     tea.ethanol_group = lc.ethanol_production_units
-#     tea.biodiesel_group = lc.biodiesel_production_units
-#     tea.BT = lc.BT
-#     IRR_with_incentives = tea.solve_IRR()
-#     df = tea.get_cashflow_table()
-#     print(f"{IRR_without_incentives=}")
-#     print(f"{IRR_with_incentives=}")
-
-
-# folder = os.path.dirname(__file__)
-# xlfile = os.path.join(folder, 'State_Parameters.xlsx')
-# nm_data = pd.read_excel(xlfile, index_col=[0])
-
-
-# folder = os.path.dirname(__file__)
-
-# available_states = ('AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-#                     'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 
-#                     'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH',
-#                     'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-#                     'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY')
-
-# prices_by_state_with_federal = {}
-# prices_by_state_without_federal = {}
-
-
-# for state in available_states:
-#             bst.PowerUtility.price = nm_data.loc['rate',state]
-#             tea.state = state
-#             tea.with_federal_incentives = True
-#             prices_by_state_with_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
-#             prices_by_state_with_federal[state] *= 2.98668849 # USD/gal
-#             tea.with_federal_incentives = False
-#             prices_by_state_without_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
-#             prices_by_state_without_federal[state] *= 2.98668849 # USD/gal
-            
-
-# for kind in ("with federal", "without federal"):
-#     with pd.ExcelWriter(os.path.join(folder, f'Incentives {kind}.xlsx')) as writer:
-#         for state in available_states:
-#             tea.state = state
-#             tea.with_federal_incentives = include_federal = kind == "with federal"
-#             prices_by_state_with_federal[state] = lc.ethanol.price = tea.solve_price(lc.ethanol)
-#             prices_by_state_with_federal[state] *= 2.98668849 # USD/gal
-#             df = tea.tax_incentives.calc_all_tax_incentives(df=True, include_federal=include_federal)
-#             df.to_excel(writer, sheet_name=state + " incentives")
-#             df = tea.get_cashflow_table()
-#             df.to_excel(writer, sheet_name=state + " cash flows")

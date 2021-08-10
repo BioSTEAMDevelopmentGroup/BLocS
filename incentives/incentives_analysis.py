@@ -19,10 +19,11 @@ import pandas as pd
 import os
 
 tea = ti.create_cornstover_tea()
-tea.fuel_tax = 0.
-tea.sales_tax = 0.
+tea.fuel_tax = 0.05
+tea.sales_tax = 0.05785
 tea.federal_income_tax = 0.35
-tea.state_income_tax = 0
+tea.state_income_tax = 0.065
+tea.property_tax = 0.0136
 tea.utility_tax = 0.
 tea.ethanol_product = cs.ethanol
 # tea.biodiesel_product = lc.biodiesel
@@ -31,7 +32,7 @@ tea.ethanol_group = bst.UnitGroup(cs.cornstover_sys.units)
 tea.feedstock = cs.cornstover
 tea.F_investment = 1
 tea.BT = cs.BT
-bst.PowerUtility.price = 0.065
+bst.PowerUtility.price = 0.0685
 
 model = bst.Model(tea.system, exception_hook='raise')
 
@@ -42,6 +43,14 @@ def get_utility_cost():
 @model.metric(name='Net electricity production', units='MWh/yr')
 def get_electricity_production():
     return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
+
+@model.metric(name='Ethanol production', units='gal/yr')
+def get_ethanol_production():
+    return tea.ethanol_product.F_mass * 2.98668849 * tea.operating_hours
+
+@model.metric(name='Total capital investment', units='USD')
+def get_TCI():
+    return tea.TCI
 
 @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
 def MFSP_baseline():
@@ -93,10 +102,12 @@ for incentive_number in range(1, 24):
 FITR_dist = shape.Triangle(0.3,0.35,0.4)
 
 # State income tax rates, range from 0% to 12%
-SITR_dist = shape.Triangle(0, 0.065, 0.12)
+
+SITR_dist = shape.Uniform(0, 0.12)
 
 # State property tax rates
-SPTR_dist = shape.Triangle(0.0037, 0.006, 0.0369) #not simulating full range bc it has extreme effects
+# SPTR_dist = shape.Triangle(0.0037, 0.006, 0.0369) #not simulating full range bc it has extreme effects
+SPTR_dist = shape.Uniform(0.0037, 0.0369)
 
 # State motor fuel tax rates
 SMFTR_dist = shape.Triangle(0, 0.05, 0.1)
@@ -134,25 +145,25 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 ### Add Parameters =============================================================
 ## Highly relevant contextual parameters
 
-# Federal income tax 
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
-def set_fed_income_tax(Federal_income_tax_rate):
-    tea.federal_income_tax = Federal_income_tax_rate
+# # Federal income tax 
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=FITR_dist)
+# def set_fed_income_tax(Federal_income_tax_rate):
+#     tea.federal_income_tax = Federal_income_tax_rate
     
 # State income tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
-def set_state_income_tax(State_income_tax_rate):
-    tea.state_income_tax = State_income_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
+# def set_state_income_tax(State_income_tax_rate):
+#     tea.state_income_tax = State_income_tax_rate
     
-# State property tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
-def set_state_property_tax(State_property_tax_rate):
-    tea.property_tax = State_property_tax_rate
+# # State property tax
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
+# def set_state_property_tax(State_property_tax_rate):
+#     tea.property_tax = State_property_tax_rate
     
-# State motor fuel tax
-@model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
-def set_motor_fuel_tax(fuel_tax_rate):
-    tea.fuel_tax = fuel_tax_rate
+# # State motor fuel tax
+# @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
+# def set_motor_fuel_tax(fuel_tax_rate):
+#     tea.fuel_tax = fuel_tax_rate
 
 #State utility tax
 # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SUTR_dist)
@@ -160,21 +171,21 @@ def set_motor_fuel_tax(fuel_tax_rate):
 #     tea.utility_tax = util_tax_rate
     
 # State sales tax
-@model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
-def set_sales_tax(sales_tax_rate):
-    tea.sales_tax = sales_tax_rate
+# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
+# def set_sales_tax(sales_tax_rate):
+#     tea.sales_tax = sales_tax_rate
 
-# Electricity price
-elec_utility = bst.PowerUtility
-@model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
-                  distribution=EP_dist)
-def set_elec_price(electricity_price):
-      elec_utility.price = electricity_price
+# # Electricity price
+# elec_utility = bst.PowerUtility
+# @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
+#                   distribution=EP_dist)
+# def set_elec_price(electricity_price):
+#       elec_utility.price = electricity_price
       
-# Location capital cost factor
-@model.parameter(element='Location', kind='isolated', units='unitless', distribution=LCCF_dist)
-def set_LCCF(LCCF):
-    tea.F_investment = LCCF
+# # Location capital cost factor
+# @model.parameter(element='Location', kind='isolated', units='unitless', distribution=LCCF_dist)
+# def set_LCCF(LCCF):
+#     tea.F_investment = LCCF
       
 # Feedstock price
 @model.parameter(element=feedstock, kind='isolated', units='USD/kg',
@@ -249,9 +260,9 @@ if tea.BT:
 #  df_dct = model.get_distribution_summary()
 
 ### Perform Monte Carlo analysis ===============================================
-model.load_default_parameters(tea.feedstock,operating_days=True)
+# model.load_default_parameters(tea.feedstock,operating_days=True)
 np.random.seed(1688)
-N_samples = 5000
+N_samples = 100
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
@@ -259,7 +270,7 @@ model.evaluate()
 table = model.table
 
 ## Perform correlation analysis
-sp_rho_table, sp_p_table = model.spearman_r()
+# sp_rho_table, sp_p_table = model.spearman_r()
 
 
 ### Plot across coordinate
@@ -386,7 +397,7 @@ sp_rho_table, sp_p_table = model.spearman_r()
 # num_key_params = len(key_params)
 
 # table.to_excel(r'/Users/daltonstewart/Desktop/screening_results.xlsx', sheet_name='Simulation Results', index = True)
-sp_rho_table.to_excel(r'/Users/daltonstewart/Desktop/spearmans_rho_all_params.xlsx', sheet_name='Spearmans rho', index = True)
+# sp_rho_table.to_excel(r'/Users/daltonstewart/Desktop/spearmans_rho_all_params.xlsx', sheet_name='Spearmans rho', index = True)
 # sp_p_table.to_excel(r'/Users/daltonstewart/Desktop/screening_results3.xlsx', sheet_name='Spearmans p', index = True)
 
 # bst.plots.plot_montecarlo(model.table['Biorefinery']['Baseline MFSP [USD/gal]'])
