@@ -30,7 +30,7 @@ def create_corn_tea():
     tea.property_tax = 0.013
     tea.utility_tax = 0.
     tea.ethanol_product = cn.ethanol
-    tea.ethanol_group = bst.UnitGroup(cn.corn_sys.units) # Assume all unit operations qualify
+    tea.ethanol_group = bst.UnitGroup('Ethanol group', cn.corn_sys.units) # Assume all unit operations qualify
     tea.feedstock = cn.corn
     return tea
 
@@ -44,7 +44,7 @@ def create_sugarcane_tea():
     tea.property_tax = 0.013
     tea.utility_tax = 0.
     tea.ethanol_product = sc.ethanol
-    tea.ethanol_group = bst.UnitGroup(sc.sugarcane_sys.units) # Assume all unit operations qualify
+    tea.ethanol_group = bst.UnitGroup('Ethanol group', sc.sugarcane_sys.units) # Assume all unit operations qualify
     tea.BT = sc.BT
     tea.feedstock = sc.sugarcane
     tea.property_tax = 0.001
@@ -60,7 +60,7 @@ def create_cornstover_tea():
     tea.property_tax = 0.013
     tea.utility_tax = 0.
     tea.ethanol_product = cs.ethanol
-    tea.ethanol_group = bst.UnitGroup(cs.cornstover_sys.units) # Assume all unit operations qualify
+    tea.ethanol_group = bst.UnitGroup('Ethanol group', cs.cornstover_sys.units) # Assume all unit operations qualify
     tea.BT = cs.BT
     tea.feedstock = cs.cornstover
     tea.property_tax = 0.001
