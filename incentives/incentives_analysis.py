@@ -10,7 +10,6 @@ biorefinery TEA and LCA.
 
 """
 import biosteam as bst
-from biorefineries import cornstover as cs
 from chaospy import distributions as shape
 from biosteam.evaluation.evaluation_tools import triang
 import incentives as ti
@@ -18,20 +17,13 @@ import numpy as np
 import pandas as pd
 import os
 
-tea = ti.create_cornstover_tea()
+tea = ti.create_cornstover_tea() #change the biorefinery and tea here
 tea.fuel_tax = 0.05
 tea.sales_tax = 0.05785
 tea.federal_income_tax = 0.35
 tea.state_income_tax = 0.065
 tea.property_tax = 0.0136
-tea.utility_tax = 0.
-tea.ethanol_product = cs.ethanol
-# tea.biodiesel_product = lc.biodiesel
-tea.ethanol_group = bst.UnitGroup(cs.cornstover_sys.units)
-# tea.biodiesel_group = lc.biodiesel_production_units
-tea.feedstock = cs.cornstover
 tea.F_investment = 1
-tea.BT = cs.BT
 bst.PowerUtility.price = 0.0685
 
 model = bst.Model(tea.system, exception_hook='raise')
@@ -51,6 +43,51 @@ def get_ethanol_production():
 @model.metric(name='Total capital investment', units='USD')
 def get_TCI():
     return tea.TCI
+
+# @model.metric(name='Ethanol equipment cost', units='USD')
+# def get_ETOH_eq():
+#     if tea.lang_factor:
+#         ethanol_eq = 1e6 * tea.lang_factor * tea.ethanol_group.get_purchase_cost()
+#     else:
+#         ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
+#     return ethanol_eq
+
+# @model.metric(name='Electricity equipment cost', units='USD')
+# def get_elec_eq():
+#     if tea.lang_factor:
+#         elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
+#     else:
+#         elec_eq = tea.BT.installed_cost if tea.BT else 0.
+#     return elec_eq
+
+# @model.metric(name='NM value', units='USD')
+# def get_NM_value():
+#     if tea.lang_factor:
+#         elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
+#     else:
+#         elec_eq = tea.BT.installed_cost if tea.BT else 0.
+#     feedstock_value = feedstock.cost * tea.operating_hours * (tea._years + tea._start)
+#     return elec_eq + feedstock_value
+
+# @model.metric(name='IA value', units='USD')
+# def get_IA_value():
+#     if tea.lang_factor:
+#         conveyor_costs = tea.lang_factor * sum([i.purchase_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
+#     else:
+#         conveyor_costs = sum([i.installed_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
+#     return conveyor_costs
+
+# @model.metric(name='Building materials', units='USD')
+# def get_building_mats():
+#     return tea.purchase_cost
+
+# @model.metric(name='Assessed income tax', units='USD')
+# def get_inc_tax():
+#     return tea.state_income_tax * tea.sales
+
+# @model.metric(name='Assessed fuel tax', units='USD')
+# def get_fuel_tax():
+#     return tea.fuel_tax * tea.ethanol_product.F_mass * 2.98668849 * tea.operating_hours
 
 @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
 def MFSP_baseline():
@@ -77,7 +114,7 @@ def MFSP_reduction_getter(incentive_number):
         return (2.98668849 * tea.solve_price(tea.ethanol_product) - MFSP_baseline_box[0])
     return MFSP
 
-for incentive_number in range(1, 24):
+for incentive_number in range(9, 20):
     element = f"Incentive {incentive_number}"
     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
     model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
@@ -90,9 +127,9 @@ for incentive_number in range(1, 24):
 # def MFSP():
 #     tea.incentive_numbers = ()
 #     tea.depreciation_incentive_24(True)
-#     MFSP = 2.98668849 * tea.solve_price(lc.ethanol)
+#     MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
 #     tea.depreciation_incentive_24(False)
-#     MFSP_baseline = 2.98668849 * tea.solve_price(lc.ethanol)
+#     MFSP_baseline = 2.98668849 * tea.solve_price(tea.ethanol_product)
 #     np.testing.assert_allclose(MFSP_baseline, MFSP_baseline_box[0], rtol=1e-3)
 #     return MFSP - MFSP_baseline_box[0]
 
@@ -103,38 +140,34 @@ FITR_dist = shape.Triangle(0.3,0.35,0.4)
 
 # State income tax rates, range from 0% to 12%
 
-SITR_dist = shape.Uniform(0, 0.12)
+SITR_dist = shape.Triangle(0, 0.065, 0.12)
 
 # State property tax rates
 # SPTR_dist = shape.Triangle(0.0037, 0.006, 0.0369) #not simulating full range bc it has extreme effects
-SPTR_dist = shape.Uniform(0.0037, 0.0369)
+SPTR_dist = shape.Triangle(0.0037, 0.0136, 0.0369)
 
 # State motor fuel tax rates
-SMFTR_dist = shape.Triangle(0, 0.05, 0.1)
+SMFTR_dist = shape.Triangle(0, 0, 0.05)
 
 # State utility tax rates
 SUTR_dist = shape.Triangle(0, 0.02, 0.05)
 
 # State sales tax rates
-SSTR_dist = shape.Triangle(0, 0.055, 0.0725)
+SSTR_dist = shape.Triangle(0, 0.05875, 0.0725)
 
 # Electricity prices, range from 0.0471 to 0.2610 USD/kWh
 EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007) #not simulating full range bc it has extreme effects
 
 # Feedstock prices, distribution taken from Emma's lit review
 feedstock = tea.feedstock
-FP_L = 0.02 # min price
-FP_M = 0.048 # mode price
-FP_U = 0.111 # max price
-
-#Total capital investment
-TCI_L = tea.TCI * 0.9
-TCI_U = tea.TCI * 1.1
+FP_L = feedstock.price * 0.9
+FP_U = feedstock.price * 1.1
+# these values for cornstover only
+# FP_L = 0.02 # min price
+# FP_M = 0.048 # mode price
+# FP_U = 0.111 # max price
 
 # Feedstock oil contents
-
-# Gasoline prices, USD/gal
-GP_dist = shape.Uniform(2.103, 2.934)
 
 # Location capital cost factors
 LCCF_dist = shape.Triangle(0.82, 1, 1.22) #not simulating full range bc it has extreme effects
@@ -151,9 +184,9 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 #     tea.federal_income_tax = Federal_income_tax_rate
     
 # State income tax
-# @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
-# def set_state_income_tax(State_income_tax_rate):
-#     tea.state_income_tax = State_income_tax_rate
+@model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
+def set_state_income_tax(State_income_tax_rate):
+    tea.state_income_tax = State_income_tax_rate
     
 # # State property tax
 # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist)
@@ -189,15 +222,9 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
       
 # Feedstock price
 @model.parameter(element=feedstock, kind='isolated', units='USD/kg',
-                  distribution=shape.Triangle(FP_L, FP_M, FP_U))
+                  distribution=shape.Uniform(FP_L, FP_U))
 def set_feed_price(feedstock_price):
     feedstock.price = feedstock_price
-
-# Total capital investment
-# @model.parameter(element='TEA', kind='isolated', units='USD',
-#                   distribution=shape.Uniform(TCI_L, TCI_U))
-# def set_TCI(TCI):
-#     tea.TCI = TCI
     
 #: WARNING: these distributions are arbitrary and a thorough literature search
 #: and an analysis of U.S. biodiesel, ethanol price projections should be made 
@@ -262,7 +289,7 @@ if tea.BT:
 ### Perform Monte Carlo analysis ===============================================
 # model.load_default_parameters(tea.feedstock,operating_days=True)
 np.random.seed(1688)
-N_samples = 100
+N_samples = 5000
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)

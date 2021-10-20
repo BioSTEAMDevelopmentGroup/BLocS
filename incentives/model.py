@@ -61,74 +61,74 @@ states = [
             ]
 
 states_w_inc = [
-                # 'Alabama',
-                # 'Colorado',
-                'Hawaii',
-                # 'Iowa',
-                # 'Kansas',
-                # 'Kentucky',
+                'Alabama',
+                'Colorado',
+                # 'Hawaii',
+                'Iowa',
+                'Kansas',
+                'Kentucky',
                 'Louisiana',
-                # 'Michigan',
-                # 'Montana',
-                # 'Nebraska',
-                # 'New Mexico',
-                # 'Oregon',
-                # 'South Carolina',
-                # 'Utah',
-                # 'Virginia'
+                'Michigan',
+                'Montana',
+                'Nebraska',
+                'New Mexico',
+                'Oregon',
+                'South Carolina',
+                'Utah',
+                'Virginia'
                 ]
 
 all_states = [
            # 'Alaska',
-           # 'Arizona',
-           # 'Arkansas',
-           # 'California',
-           # 'Connecticut',
-           # 'Delaware',
+            'Arizona',
+            'Arkansas',
+            'California',
+            # 'Connecticut',
+            'Delaware',
           'Florida',
-           # 'Georgia',
-           # 'Idaho',
-           # 'Illinois',
-           # 'Indiana',
-           # 'Maine',
-           # 'Maryland',
-           # 'Massachusetts',
-           # 'Minnesota',
-           # 'Mississippi',
-           # 'Missouri',
-           # 'Nevada',
-           # 'New Hampshire',
-           # 'New Jersey',
-           # 'New York',
-           # 'North Carolina',
-           # 'North Dakota',
-           # 'Ohio',
-           # 'Oklahoma',
-           # 'Pennsylvania',
-           # 'Rhode Island',
-           # 'South Dakota',
-           # 'Tennessee',
-          'Texas',
-           # 'Vermont',
-           # 'Washington',
-           # 'West Virginia',
-           # 'Wisconsin',
-           # 'Wyoming',
-           # 'Alabama',
-           # 'Colorado',
-           'Hawaii',
-           # 'Iowa',
-           # 'Kansas',
-           # 'Kentucky',
-          'Louisiana',
-           # 'Michigan',
-           # 'Montana',
-           # 'Nebraska',
-           # 'New Mexico',
-           # 'Oregon',
-           # 'South Carolina',
-           # 'Utah',
-           # 'Virginia'
+            'Georgia',
+            'Idaho',
+            'Illinois',
+            'Indiana',
+            # 'Maine',
+            'Maryland',
+            # 'Massachusetts',
+            'Minnesota',
+            'Mississippi',
+            'Missouri',
+            # 'Nevada',
+            # 'New Hampshire',
+            'New Jersey',
+            'New York',
+            'North Carolina',
+            'North Dakota',
+            'Ohio',
+            'Oklahoma',
+            'Pennsylvania',
+            # 'Rhode Island',
+            'South Dakota',
+            'Tennessee',
+           'Texas',
+            # 'Vermont',
+            'Washington',
+            'West Virginia',
+            'Wisconsin',
+            'Wyoming',
+            'Alabama',
+            'Colorado',
+            # 'Hawaii',
+            'Iowa',
+            'Kansas',
+            'Kentucky',
+           'Louisiana',
+            'Michigan',
+            'Montana',
+            'Nebraska',
+            'New Mexico',
+            'Oregon',
+            'South Carolina',
+            'Utah',
+            'Virginia'
            ]
 
 def create_model(biorefinery):
@@ -145,6 +145,12 @@ def create_model(biorefinery):
     
     model = bst.Model(tea.system, exception_hook='raise')
     bst.PowerUtility.price = 0.0685
+    tea.fuel_tax = 0.05
+    tea.sales_tax = 0.05785
+    tea.federal_income_tax = 0.35
+    tea.state_income_tax = 0.065
+    tea.property_tax = 0.0136
+    tea.F_investment = 1
     
 
     def MFSP_getter(state):
@@ -221,7 +227,7 @@ def create_model(biorefinery):
     @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
         tea.state_income_tax = 0
-        tea.property_tax = 0
+        tea.property_tax = 0.001
         tea.fuel_tax = 0
         tea.sales_tax = 0
         bst.PowerUtility.price = 0.0571675
