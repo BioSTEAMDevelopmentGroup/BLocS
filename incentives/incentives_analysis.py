@@ -160,12 +160,12 @@ EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007) #not simulating full range bc i
 
 # Feedstock prices, distribution taken from Emma's lit review
 feedstock = tea.feedstock
-FP_L = feedstock.price * 0.9
-FP_U = feedstock.price * 1.1
+# FP_L = feedstock.price * 0.9
+# FP_U = feedstock.price * 1.1
 # these values for cornstover only
-# FP_L = 0.02 # min price
-# FP_M = 0.048 # mode price
-# FP_U = 0.111 # max price
+FP_L = 0.02 # min price
+FP_M = 0.048 # mode price
+FP_U = 0.111 # max price
 
 # Feedstock oil contents
 
@@ -222,7 +222,7 @@ def set_state_income_tax(State_income_tax_rate):
       
 # Feedstock price
 @model.parameter(element=feedstock, kind='isolated', units='USD/kg',
-                  distribution=shape.Uniform(FP_L, FP_U))
+                  distribution=shape.Triangle(FP_L, FP_M, FP_U))
 def set_feed_price(feedstock_price):
     feedstock.price = feedstock_price
     
@@ -289,7 +289,7 @@ if tea.BT:
 ### Perform Monte Carlo analysis ===============================================
 # model.load_default_parameters(tea.feedstock,operating_days=True)
 np.random.seed(1688)
-N_samples = 5000
+N_samples = 100
 rule = 'L' # For Latin-Hypercube sampling
 samples = model.sample(N_samples, rule)
 model.load_samples(samples)
