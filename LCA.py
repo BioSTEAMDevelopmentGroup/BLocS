@@ -64,6 +64,7 @@ def LCA(biorefinery,
         cn.lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
         cn.alpha_amylase.characterization_factors[material_cradle_to_gate_key] = 1.21 #GREET
         cn.gluco_amylase.characterization_factors[material_cradle_to_gate_key] = 5.54 #GREET
+        cn.steam.characterization_factors[material_cradle_to_gate_key] = 0.10/1000 #GREET
         chems = cn.chemicals
         if feedstock_CF == None:
             fs_CF = 0.25 #GREET
@@ -183,7 +184,8 @@ def LCA(biorefinery,
     
 #-----------------------------------------------------------------------------     
 #Determine GWP from material flows, biogenic CO2, and GWP from direct emissions of CO2 
-    GWP_material = sum([s.get_impact(material_cradle_to_gate_key) for s in sys.feeds])
+    # GWP_material = sum([s.get_impact(material_cradle_to_gate_key) for s in sys.feeds])
+    GWP_material = sum([s.get_impact(material_cradle_to_gate_key) if s.ID !='steam' else s.characterization_factors[material_cradle_to_gate_key]*s.H for s in sys.feeds])
 
     biogenic_CO2 = fs.get_atomic_flow('C')*44 # in kg CO2/hr
 
