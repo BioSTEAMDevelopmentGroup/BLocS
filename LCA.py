@@ -28,8 +28,8 @@ from biosteam.evaluation.evaluation_tools import triang
 #=============================================================================
 def LCA(biorefinery,
         feedstock_CF=None,
-        elec_cons_CF=0.48, # https://greet.es.anl.gov/
-        elec_prod_CF=0.48, # https://greet.es.anl.gov/
+        elec_cons_CF=0.36, # https://greet.es.anl.gov/
+        elec_prod_CF=0.36, # https://greet.es.anl.gov/
         allocation=None):
 
 #-----------------------------------------------------------------------------   
@@ -46,7 +46,7 @@ def LCA(biorefinery,
     # Assume all other feeds are negligible
         # feed.characterization_factors[material_cradle_to_gate_key] = 0.
         #TODO: change feedstock default CFs
-    
+    CO2_CH4 = 44/16    
 #-----------------------------------------------------------------------------       
 #Set biorefinery system from function argument,then set material flows and CFs
     biorefinery = biorefinery.lower()
@@ -77,10 +77,10 @@ def LCA(biorefinery,
         fs = cs.cornstover
         ng = cs.natural_gas
         et = cs.ethanol
-        cs.FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
-        cs.caustic.characterization_factors[material_cradle_to_gate_key] = 2.01 #GREET
-        cs.cellulase.characterization_factors[material_cradle_to_gate_key] = 2.19 #GREET
-        # DAP = cs.cellulase
+        cs.FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28*0.451 #GREET, *0.451 to adjust from GREET dilution to ours
+        cs.caustic.characterization_factors[material_cradle_to_gate_key] = 2.01*0.5 #GREET, *0.5 to adjust from GREET dilution to ours
+        cs.cellulase.characterization_factors[material_cradle_to_gate_key] = 8.07*0.02 #GREET, *0.02 to adjust from GREET dilution to ours
+        cs.DAP.characterization_factors[material_cradle_to_gate_key] = 1.66 #GREET
         cs.CSL.characterization_factors[material_cradle_to_gate_key] = 1.56 #GREET
         cs.ammonia.characterization_factors[material_cradle_to_gate_key] = 2.58 #GREET
         denaturant = cs.denaturant
@@ -97,10 +97,11 @@ def LCA(biorefinery,
         ng = sc.natural_gas
         et = sc.ethanol
         denaturant = sc.denaturant
-        sc.enzyme.characterization_factors[material_cradle_to_gate_key] = 1.21 #a-amylase
-        sc.H3PO4.characterization_factors[material_cradle_to_gate_key] = 1.06 #GREET
-        sc.lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
-        sc.polymer.characterization_factors[material_cradle_to_gate_key] = 1.27 #GREET
+        sc.dryer_natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
+        sc.enzyme.characterization_factors[material_cradle_to_gate_key] = 0 #a-amylase #TODO: this stream should no longer exist with updated bst
+        sc.H3PO4.characterization_factors[material_cradle_to_gate_key] = 1.06*0.5 #GREET, *0.5 to adjust from GREET dilution to ours
+        sc.lime.characterization_factors[material_cradle_to_gate_key] = 1.28*0.046 #GREET, *0.046 to adjust from GREET dilution to ours
+        sc.polymer.characterization_factors[material_cradle_to_gate_key] = 1.27 #GREET #TODO: check this
         chems = sc.chemicals
         if feedstock_CF == None:
             fs_CF = 29.31/1000 #GREET
@@ -121,11 +122,11 @@ def LCA(biorefinery,
     # for feed in sys.feeds:
     # Assume all other feeds are negligible
         # feed.characterization_factors[material_cradle_to_gate_key] = 0.
-        #TODO: change feedstock default CFs
         
     # Set non-negligible characterization factors
     
     # Most feedstock CFs for dry weight (dw) basis, adjust for that here
+    # TODO: also adjust for GREET default water content
     dw = (fs.F_mass-fs.imass['H2O'])/fs.F_mass
     # Feedstock CF
     fs.characterization_factors[material_cradle_to_gate_key] = fs_CF*dw # https://www.osti.gov/servlets/purl/1337146
@@ -135,7 +136,8 @@ def LCA(biorefinery,
     bst.PowerUtility.characterization_factors[production_key] = elec_prod_CF 
 
     # Natural gas
-    ng.characterization_factors[material_cradle_to_gate_key] = 0.4     
+    
+    ng.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
     
     # # FGD lime
     # FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
@@ -185,30 +187,32 @@ def LCA(biorefinery,
 #-----------------------------------------------------------------------------     
 #Determine GWP from material flows, biogenic CO2, and GWP from direct emissions of CO2 
     # GWP_material = sum([s.get_impact(material_cradle_to_gate_key) for s in sys.feeds])
+    #TODO: note that this 'material' GWP also includes onsite emissions
     GWP_material = sum([s.get_impact(material_cradle_to_gate_key) if s.ID !='steam' else s.characterization_factors[material_cradle_to_gate_key]*s.H for s in sys.feeds])
 
-    biogenic_CO2 = fs.get_atomic_flow('C')*44 # in kg CO2/hr
+    # biogenic_CO2 = fs.get_atomic_flow('C')*44 # in kg CO2/hr
 
-    GWP_direct_emissions = sum([i.imass['CO2'] for i in sys.products if 'CO2' in i.chemicals]) - biogenic_CO2
+    # GWP_direct_emissions = sum([i.imass['CO2'] for i in sys.products if 'CO2' in i.chemicals]) #- biogenic_CO2
     
 #-----------------------------------------------------------------------------     
 #Determine net electricity and associated GWP
     net_electricity = bst.PowerUtility.sum([i.power_utility for i in sys.units])
     GWP_electricity_production = net_electricity.get_impact(production_key=production_key, consumption_key=consumption_key)
-    
+    import pdb 
+    pdb.set_trace()
 #-----------------------------------------------------------------------------     
 #Determine total GWP
 #For net electricity consumers, includes GWP due to electricity
 #For net electricity producers, produced electricity is ignored for now  
     if net_electricity.rate > 0:
-        GWP_total = GWP_material + GWP_direct_emissions + GWP_electricity_production # kg CO2 eq. / hr
+        GWP_total = GWP_material + GWP_electricity_production #+ GWP_direct_emissions # kg CO2 eq. / hr
     else:
-        GWP_total = GWP_material + GWP_direct_emissions # kg CO2 eq. / hr
+        GWP_total = GWP_material #+ GWP_direct_emissions # kg CO2 eq. / hr
   
 #-----------------------------------------------------------------------------     
 #Determine total GWP according to offset allocation method, used by USEPA Renewable Fuel Standard
 #For net electricity producers, impact of produced electricity 'offsets' impacts of ethanol production
-    GWP_offset = GWP_material + GWP_direct_emissions + GWP_electricity_production # kg CO2 eq. / hr
+    GWP_offset = GWP_material + GWP_electricity_production #+ GWP_direct_emissions # kg CO2 eq. / hr
 
 #-----------------------------------------------------------------------------     
 #Determine total GWP according to energy allocatino method, used by EU Renewable Energy Directive
@@ -237,18 +241,19 @@ def LCA(biorefinery,
 #-----------------------------------------------------------------------------         
 #Return final GWP/ values according to argument specifying allocation method
 #Allocation cannot be performed for only one product
+# TODO: make sure all coproducts are accounted for (ie vinasse from sugarcane could offset fertilizer produced with fossil fuels)
     if allocation == 'displacement':
         if net_electricity.rate > 0:
             raise RuntimeError("Allocation cannot be performed for only one product.")
         else:
-            GWP_ethanol = GWP_offset / et.F_mass # kg CO2 eq. / kg ethanol
+            GWP_ethanol = GWP_offset / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     elif allocation == 'energy':
         if net_electricity.rate > 0:
             raise RuntimeError("Allocation cannot be performed for only one product.")
         else:
-            GWP_ethanol = GWP_eng / et.F_mass # kg CO2 eq. / kg ethanol
+            GWP_ethanol = GWP_eng / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     elif allocation == None:
-        GWP_ethanol = GWP_total / et.F_mass # kg CO2 eq. / kg ethanol
+        GWP_ethanol = GWP_total / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     else: raise ValueError("invalid allocation method; must be either"
                            "'displacement' or 'energy'")
         
