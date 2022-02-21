@@ -12,7 +12,7 @@ Examples
 import biosteam as bst
 from chaospy import distributions as shape
 from biosteam.evaluation.evaluation_tools import triang
-import incentives as ti
+import blocs as blc
 import numpy as np
 import pandas as pd
 import os
@@ -134,11 +134,11 @@ all_states = [
 def create_model(biorefinery):
     biorefinery = biorefinery.lower()
     if biorefinery == 'corn':
-        tea = ti.create_corn_tea()
+        tea = blc.create_corn_tea()
     elif biorefinery == 'cornstover':
-        tea = ti.create_cornstover_tea()
+        tea = blc.create_cornstover_tea()
     elif biorefinery == 'sugarcane':
-        tea = ti.create_sugarcane_tea()
+        tea = blc.create_sugarcane_tea()
     else:
         raise ValueError("invalid biorefinery; must be either "
                          "'corn', 'cornstover', or 'sugarcane'")

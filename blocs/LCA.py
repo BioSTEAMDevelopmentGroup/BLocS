@@ -10,18 +10,15 @@ Created on Fri Oct 22 13:45:13 2021
 #Import necessary packages
 #=============================================================================
 import biosteam as bst
-import biorefineries
 from biorefineries import corn as cn
 from biorefineries import cornstover as cs
 from biorefineries import sugarcane as sc
-import thermosteam as tmo
 import numpy as np
 from chaospy import distributions as shape
 import incentives as ti
 import pandas as pd
 import os
 from biosteam.evaluation.evaluation_tools import triang
-
 
 #=============================================================================
 #Define LCA function
@@ -33,33 +30,27 @@ def LCA(biorefinery,
         allocation=None):
 
 #-----------------------------------------------------------------------------   
-#Set feedstock characterization factor from function argument 
-    # fs_CF = feedstock_CF
-
 #Set keys to call material characterization factors    
     material_cradle_to_gate_key = ('GWP100', 'cradle_to_gate') 
     consumption_key = ('GWP100', 'cradle_to_gate') 
     production_key = ('GWP100', 'cradle_to_gate') 
     
-#Assign material characterization factors    
-    # for feed in sys.feeds:
-    # Assume all other feeds are negligible
-        # feed.characterization_factors[material_cradle_to_gate_key] = 0.
-        #TODO: change feedstock default CFs
+    # Use to adjust methane CF to account for combustion
     CO2_CH4 = 44/16    
+    
 #-----------------------------------------------------------------------------       
-#Set biorefinery system from function argument,then set material flows and CFs
+#Set biorefinery system from function argument,then set material flows and characterization factors
     biorefinery = biorefinery.lower()
     if biorefinery == 'corn':
         sys = cn.corn_sys
         for feed in sys.feeds:
             feed.characterization_factors[material_cradle_to_gate_key] = 0. #assume many are negligible
         fs = cn.corn
-        ng = cn.natural_gas
         et = cn.ethanol
+        cn.natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
         cn.sulfuric_acid.characterization_factors[material_cradle_to_gate_key] = 43.44/1000 #GREET
         cn.yeast.characterization_factors[material_cradle_to_gate_key] = 2.51 #GREET
-        denaturant = cn.denaturant
+        cn.denaturant.characterization_factors[material_cradle_to_gate_key] = 0.88 #GREET
         cn.ammonia.characterization_factors[material_cradle_to_gate_key] = 2.58 #GREET
         cn.lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
         cn.alpha_amylase.characterization_factors[material_cradle_to_gate_key] = 1.21 #GREET
@@ -67,139 +58,61 @@ def LCA(biorefinery,
         cn.steam.characterization_factors[material_cradle_to_gate_key] = 0.10/1000 #GREET
         chems = cn.chemicals
         if feedstock_CF == None:
-            fs_CF = 0.25 #GREET
+            fs.characterization_factors[material_cradle_to_gate_key] = 0.25 #GREET #TODO: adjust for moisture content
         else:
-            fs_CF = feedstock_CF
+            fs.characterization_factors[material_cradle_to_gate_key] = feedstock_CF
     elif biorefinery == 'cornstover':
         sys = cs.cornstover_sys
         for feed in sys.feeds:
             feed.characterization_factors[material_cradle_to_gate_key] = 0. #assume many are negligible
         fs = cs.cornstover
-        ng = cs.natural_gas
         et = cs.ethanol
+        cs.natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
         cs.FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28*0.451 #GREET, *0.451 to adjust from GREET dilution to ours
         cs.caustic.characterization_factors[material_cradle_to_gate_key] = 2.01*0.5 #GREET, *0.5 to adjust from GREET dilution to ours
         cs.cellulase.characterization_factors[material_cradle_to_gate_key] = 8.07*0.02 #GREET, *0.02 to adjust from GREET dilution to ours
         cs.DAP.characterization_factors[material_cradle_to_gate_key] = 1.66 #GREET
         cs.CSL.characterization_factors[material_cradle_to_gate_key] = 1.56 #GREET
         cs.ammonia.characterization_factors[material_cradle_to_gate_key] = 2.58 #GREET
-        denaturant = cs.denaturant
+        cs.denaturant.characterization_factors[material_cradle_to_gate_key] = 0.88 #GREET
         chems = cs.chemicals
         if feedstock_CF == None:
-            fs_CF = 45.67/1000 #GREET
+            fs.characterization_factors[material_cradle_to_gate_key] = 45.67/1000 #GREET #TODO: adjust for moisture content
         else:
-            fs_CF = feedstock_CF
+            fs.characterization_factors[material_cradle_to_gate_key] = feedstock_CF
     elif biorefinery == 'sugarcane':
         sys = sc.sugarcane_sys
         for feed in sys.feeds:
             feed.characterization_factors[material_cradle_to_gate_key] = 0. #assume many are negligible
         fs = sc.sugarcane
-        ng = sc.natural_gas
         et = sc.ethanol
-        denaturant = sc.denaturant
+        sc.natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
+        sc.denaturant.characterization_factors[material_cradle_to_gate_key] = 0.88 #GREET
         sc.dryer_natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
-        sc.enzyme.characterization_factors[material_cradle_to_gate_key] = 0 #a-amylase #TODO: this stream should no longer exist with updated bst
         sc.H3PO4.characterization_factors[material_cradle_to_gate_key] = 1.06*0.5 #GREET, *0.5 to adjust from GREET dilution to ours
         sc.lime.characterization_factors[material_cradle_to_gate_key] = 1.28*0.046 #GREET, *0.046 to adjust from GREET dilution to ours
-        sc.polymer.characterization_factors[material_cradle_to_gate_key] = 1.27 #GREET #TODO: check this
         chems = sc.chemicals
         if feedstock_CF == None:
-            fs_CF = 29.31/1000 #GREET
+            fs.characterization_factors[material_cradle_to_gate_key] = 29.31/1000*0.30/0.25 #GREET
         else:
-            fs_CF = feedstock_CF
+            fs.characterization_factors[material_cradle_to_gate_key] = feedstock_CF
     else:
         raise ValueError("invalid biorefinery; must be either "
                          "'corn', 'cornstover', or 'sugarcane'")
-
-#-----------------------------------------------------------------------------     
-#Set keys to call material characterization factors    
-    # material_cradle_to_gate_key = ('GWP100', 'cradle_to_gate') 
-    # consumption_key = ('GWP100', 'cradle_to_gate') 
-    # production_key = ('GWP100', 'cradle_to_gate') 
-
-#-----------------------------------------------------------------------------     
-#Assign material characterization factors    
-    # for feed in sys.feeds:
-    # Assume all other feeds are negligible
-        # feed.characterization_factors[material_cradle_to_gate_key] = 0.
         
-    # Set non-negligible characterization factors
-    
-    # Most feedstock CFs for dry weight (dw) basis, adjust for that here
-    # TODO: also adjust for GREET default water content
-    dw = (fs.F_mass-fs.imass['H2O'])/fs.F_mass
-    # Feedstock CF
-    fs.characterization_factors[material_cradle_to_gate_key] = fs_CF*dw # https://www.osti.gov/servlets/purl/1337146
-    
     # Electricity CFs, consumption assumed = to regional mix factor, production assumed = to regional natural gas factor
     bst.PowerUtility.characterization_factors[consumption_key] = elec_cons_CF 
     bst.PowerUtility.characterization_factors[production_key] = elec_prod_CF 
-
-    # Natural gas
-    
-    ng.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
-    
-    # # FGD lime
-    # FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
-    
-    # # Lime
-    # lime.characterization_factors[material_cradle_to_gate_key] = 1.28 #GREET
-    
-    # # Caustic
-    # caustic.characterization_factors[material_cradle_to_gate_key] = 2.01 #GREET
-    
-    # # Cellulase
-    # cellulase.characterization_factors[material_cradle_to_gate_key] = 2.19 #GREET
-    
-    # # DAP
-    # DAP.characterization_factors[material_cradle_to_gate_key] = 1.66 #GREET
-    
-    # # Sulfuric acid
-    # sulfuric_acid.characterization_factors[material_cradle_to_gate_key] = 43.44/1000 #GREET
-    
-    # # CSL
-    # CSL.characterization_factors[material_cradle_to_gate_key] = 1.56 #GREET
-    
-    # # Ammonia
-    # ammonia.characterization_factors[material_cradle_to_gate_key] = 2.58 #GREET
-    
-    # Denaturant
-    denaturant.characterization_factors[material_cradle_to_gate_key] = 0.88 #GREET
-    
-    # # Yeast
-    # yeast.characterization_factors[material_cradle_to_gate_key] = 2.51 #GREET
-    
-    # # Alpha amylase
-    # a_amylase.characterization_factors[material_cradle_to_gate_key] = 1.21 #GREET
-    
-    # # Gluco amylase
-    # g_amylase.characterization_factors[material_cradle_to_gate_key] = 5.54 #GREET
-    
-    # # Enzyme
-    # enzyme.characterization_factors[material_cradle_to_gate_key] = 1.21 #a-amylase
-    
-    # # Phosphoric acid
-    # phosphoric_acid.characterization_factors[material_cradle_to_gate_key] = 1.06 #GREET
-    
-    # # Polymer
-    # polymer.characterization_factors[material_cradle_to_gate_key] = 1.27 #GREET
     
 #-----------------------------------------------------------------------------     
-#Determine GWP from material flows, biogenic CO2, and GWP from direct emissions of CO2 
-    # GWP_material = sum([s.get_impact(material_cradle_to_gate_key) for s in sys.feeds])
-    #TODO: note that this 'material' GWP also includes onsite emissions
+#Determine GWP from material flows and GWP from onsite direct emissions of CO2 
     GWP_material = sum([s.get_impact(material_cradle_to_gate_key) if s.ID !='steam' else s.characterization_factors[material_cradle_to_gate_key]*s.H for s in sys.feeds])
-
-    # biogenic_CO2 = fs.get_atomic_flow('C')*44 # in kg CO2/hr
-
-    # GWP_direct_emissions = sum([i.imass['CO2'] for i in sys.products if 'CO2' in i.chemicals]) #- biogenic_CO2
     
 #-----------------------------------------------------------------------------     
 #Determine net electricity and associated GWP
     net_electricity = bst.PowerUtility.sum([i.power_utility for i in sys.units])
     GWP_electricity_production = net_electricity.get_impact(production_key=production_key, consumption_key=consumption_key)
-    import pdb 
-    pdb.set_trace()
+    
 #-----------------------------------------------------------------------------     
 #Determine total GWP
 #For net electricity consumers, includes GWP due to electricity
@@ -259,7 +172,6 @@ def LCA(biorefinery,
         
     return GWP_ethanol
     
-
 #=============================================================================
 #Test model to determine GWP in different states
 #=============================================================================

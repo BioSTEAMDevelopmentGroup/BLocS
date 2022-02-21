@@ -11,7 +11,7 @@ import biosteam as bst
 from biorefineries import lipidcane as lc
 from chaospy import distributions as shape
 from biosteam.evaluation.evaluation_tools import triang
-import incentives as ti
+import blocs as blc
 import numpy as np
 import pandas as pd
 import os
@@ -38,7 +38,7 @@ all_states = [
           'Louisiana',        
            ]
 
-tea = lc.create_tea(lc.lipidcane_sys, ti.IncentivesTEA)
+tea = lc.create_tea(lc.lipidcane_sys, blc.IncentivesTEA)
 model = bst.Model(lc.lipidcane_sys, exception_hook='raise')
 
 tea.fuel_tax = 0.

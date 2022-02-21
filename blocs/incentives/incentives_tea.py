@@ -9,7 +9,7 @@ import numpy as np
 from biorefineries import corn as cn
 from biorefineries import sugarcane as sc
 from biorefineries import cornstover as cs
-import incentives as inct
+import blocs as blc
 import biosteam as bst
     
 __all__ = (
@@ -195,7 +195,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac)
         util_tax_arr = self.utility_tax * util_cost_arr
         
-        exemptions, deductions, credits, refunds = inct.determine_tax_incentives(
+        exemptions, deductions, credits, refunds = blc.determine_tax_incentives(
             self.incentive_numbers,
             start=self._start,
             plant_years=self._years + self._start,

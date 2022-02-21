@@ -12,12 +12,12 @@ biorefinery TEA and LCA.
 import biosteam as bst
 from chaospy import distributions as shape
 from biosteam.evaluation.evaluation_tools import triang
-import incentives as ti
+import blocs as blc
 import numpy as np
 import pandas as pd
 import os
 
-tea = ti.create_cornstover_tea() #change the biorefinery and tea here
+tea = blc.create_cornstover_tea() #change the biorefinery and tea here
 tea.fuel_tax = 0.05
 tea.sales_tax = 0.05785
 tea.federal_income_tax = 0.35
