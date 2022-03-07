@@ -17,113 +17,113 @@ import numpy as np
 import pandas as pd
 import os
 
-tea = blc.create_sugarcane_tea() # TODO change the biorefinery and tea here
-tea.fuel_tax = 0.
-tea.sales_tax = 0.05785
-tea.federal_income_tax = 0.35
-tea.state_income_tax = 0.065
-tea.property_tax = 0.0136
-tea.F_investment = 1
-tea.feedstock.price = 0.05 # TODO change feedstock price here, 0.0972 for cs
-bst.PowerUtility.price = 0.0685
+# tea = blc.create_sugarcane_tea() # TODO change the biorefinery and tea here
+# tea.fuel_tax = 0.
+# tea.sales_tax = 0.05785
+# tea.federal_income_tax = 0.35
+# tea.state_income_tax = 0.065
+# tea.property_tax = 0.0136
+# tea.F_investment = 1
+# tea.feedstock.price = 0.05 # TODO change feedstock price here, 0.0972 for cs
+# bst.PowerUtility.price = 0.0685
 # tea.state_tax_by_gross_receipts = True
 
-model = bst.Model(tea.system, exception_hook='raise')
+# model = bst.Model(tea.system, exception_hook='raise')
 
-@model.metric(name='Utility cost', units='10^6 USD/yr')
-def get_utility_cost():
-    return tea.utility_cost / 1e6
+# @model.metric(name='Utility cost', units='10^6 USD/yr')
+# def get_utility_cost():
+#     return tea.utility_cost / 1e6
 
-@model.metric(name='Net electricity production', units='MWh/yr')
-def get_electricity_production():
-    return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
+# @model.metric(name='Net electricity production', units='MWh/yr')
+# def get_electricity_production():
+#     return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
 
-@model.metric(name='Ethanol production', units='gal/yr')
-def get_ethanol_production():
-    return tea.ethanol_product.F_mass / 2.98668849 * tea.operating_hours
+# @model.metric(name='Ethanol production', units='gal/yr')
+# def get_ethanol_production():
+#     return tea.ethanol_product.F_mass / 2.98668849 * tea.operating_hours
 
-@model.metric(name='Total capital investment', units='USD')
-def get_TCI():
-    return tea.TCI
+# @model.metric(name='Total capital investment', units='USD')
+# def get_TCI():
+#     return tea.TCI
 
-@model.metric(name='Ethanol equipment cost', units='USD')
-def get_ETOH_eq():
-    if tea.lang_factor:
-        ethanol_eq = 1e6 * tea.lang_factor * tea.ethanol_group.get_purchase_cost()
-    else:
-        ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
-    return ethanol_eq
+# @model.metric(name='Ethanol equipment cost', units='USD')
+# def get_ETOH_eq():
+#     if tea.lang_factor:
+#         ethanol_eq = 1e6 * tea.lang_factor * tea.ethanol_group.get_purchase_cost()
+#     else:
+#         ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
+#     return ethanol_eq
 
-@model.metric(name='Electricity equipment cost', units='USD')
-def get_elec_eq():
-    if tea.lang_factor:
-        elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
-    else:
-        elec_eq = tea.BT.installed_cost if tea.BT else 0.
-    return elec_eq
+# @model.metric(name='Electricity equipment cost', units='USD')
+# def get_elec_eq():
+#     if tea.lang_factor:
+#         elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
+#     else:
+#         elec_eq = tea.BT.installed_cost if tea.BT else 0.
+#     return elec_eq
 
-@model.metric(name='NM value', units='USD')
-def get_NM_value():
-    if tea.lang_factor:
-        elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
-    else:
-        elec_eq = tea.BT.installed_cost if tea.BT else 0.
-    feedstock_value = feedstock.cost * tea.operating_hours * (tea._years + tea._start)
-    return elec_eq + feedstock_value
+# @model.metric(name='NM value', units='USD')
+# def get_NM_value():
+#     if tea.lang_factor:
+#         elec_eq = tea.lang_factor * tea.BT.purchase_cost if tea.BT else 0.
+#     else:
+#         elec_eq = tea.BT.installed_cost if tea.BT else 0.
+#     feedstock_value = feedstock.cost * tea.operating_hours * (tea._years + tea._start)
+#     return elec_eq + feedstock_value
 
-@model.metric(name='IA value', units='USD')
-def get_IA_value():
-    if tea.lang_factor:
-        conveyor_costs = tea.lang_factor * sum([i.purchase_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
-    else:
-        conveyor_costs = sum([i.installed_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
-    return conveyor_costs
+# @model.metric(name='IA value', units='USD')
+# def get_IA_value():
+#     if tea.lang_factor:
+#         conveyor_costs = tea.lang_factor * sum([i.purchase_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
+#     else:
+#         conveyor_costs = sum([i.installed_cost for i in tea.units if isinstance(i, bst.ConveyingBelt)])
+#     return conveyor_costs
 
-@model.metric(name='Building materials', units='USD')
-def get_building_mats():
-    return tea.purchase_cost
+# @model.metric(name='Building materials', units='USD')
+# def get_building_mats():
+#     return tea.purchase_cost
 
-@model.metric(name='Assessed income tax', units='USD')
-def get_inc_tax():
-    return tea.state_income_tax * tea.sales
+# @model.metric(name='Assessed income tax', units='USD')
+# def get_inc_tax():
+#     return tea.state_income_tax * tea.sales
 
-@model.metric(name='Assessed fuel tax', units='USD')
-def get_fuel_tax():
-    return tea.fuel_tax * get_ethanol_production.get()
+# @model.metric(name='Assessed fuel tax', units='USD')
+# def get_fuel_tax():
+#     return tea.fuel_tax * get_ethanol_production.get()
 
-@model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
-def MFSP_baseline():
-    tea.incentive_numbers = ()
-    MFSP_baseline_box[0] = MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
-    return MFSP
+# @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
+# def MFSP_baseline():
+#     tea.incentive_numbers = ()
+#     MFSP_baseline_box[0] = MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
+#     return MFSP
 
-MFSP_baseline_box = [None]
+# MFSP_baseline_box = [None]
 
-get_exemptions = lambda: tea.exemptions.sum()
-get_deductions = lambda: tea.deductions.sum()
-get_credits = lambda: tea.credits.sum()
-get_refunds = lambda: tea.refunds.sum()
+# get_exemptions = lambda: tea.exemptions.sum()
+# get_deductions = lambda: tea.deductions.sum()
+# get_credits = lambda: tea.credits.sum()
+# get_refunds = lambda: tea.refunds.sum()
 
-def MFSP_getter(incentive_number):
-    def MFSP():
-        tea.incentive_numbers = (incentive_number,)
-        return 2.98668849 * tea.solve_price(tea.ethanol_product)
-    return MFSP
+# def MFSP_getter(incentive_number):
+#     def MFSP():
+#         tea.incentive_numbers = (incentive_number,)
+#         return 2.98668849 * tea.solve_price(tea.ethanol_product)
+#     return MFSP
 
-def MFSP_reduction_getter(incentive_number):
-    def MFSP():
-        tea.incentive_numbers = (incentive_number,)
-        return (2.98668849 * tea.solve_price(tea.ethanol_product) - MFSP_baseline_box[0])
-    return MFSP
+# def MFSP_reduction_getter(incentive_number):
+#     def MFSP():
+#         tea.incentive_numbers = (incentive_number,)
+#         return (2.98668849 * tea.solve_price(tea.ethanol_product) - MFSP_baseline_box[0])
+#     return MFSP
 
-for incentive_number in range(6, 7):
-    element = f"Incentive {incentive_number}"
-    model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
-    model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
-    model.metric(get_exemptions, 'Exemptions', 'USD', element)
-    model.metric(get_deductions, 'Deductions', 'USD', element)
-    model.metric(get_credits, 'Credits', 'USD', element)
-    model.metric(get_refunds, 'Refunds', 'USD', element)
+# for incentive_number in range(1, 24):
+#     element = f"Incentive {incentive_number}"
+#     model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
+#     model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
+#     model.metric(get_exemptions, 'Exemptions', 'USD', element)
+#     model.metric(get_deductions, 'Deductions', 'USD', element)
+#     model.metric(get_credits, 'Credits', 'USD', element)
+#     model.metric(get_refunds, 'Refunds', 'USD', element)
 
 # @model.metric(name="MFSP Reduction", units='USD/gal', element='Incentive 24')
 # def MFSP():
@@ -236,21 +236,21 @@ EGeff_dist = shape.Triangle(0.7,0.85,0.9)
 ##Innate uncertainty in biorefinery operations
 
 # Plant capacity
-@model.parameter(element=feedstock, kind='isolated', units='kg/hr',
-                      distribution=triang(feedstock.F_mass))
-def set_plant_capacity(plant_capacity):
-        feedstock.F_mass = plant_capacity
+# @model.parameter(element=feedstock, kind='isolated', units='kg/hr',
+#                       distribution=triang(feedstock.F_mass))
+# def set_plant_capacity(plant_capacity):
+#         feedstock.F_mass = plant_capacity
 
-if tea.BT:
-        # Boiler efficiency
-        @model.parameter(element=tea.BT, units='%', distribution=triang(tea.BT.boiler_efficiency))
-        def set_boiler_efficiency(boiler_efficiency):
-            tea.BT.boiler_efficiency = boiler_efficiency    
+# if tea.BT:
+#         # Boiler efficiency
+#         @model.parameter(element=tea.BT, units='%', distribution=triang(tea.BT.boiler_efficiency))
+#         def set_boiler_efficiency(boiler_efficiency):
+#             tea.BT.boiler_efficiency = boiler_efficiency    
         
-        # Turbogenerator efficiency
-        @model.parameter(element=tea.BT, units='%', distribution=EGeff_dist)
-        def set_turbogenerator_efficiency(turbo_generator_efficiency):
-            tea.BT.turbogenerator_efficiency = turbo_generator_efficiency
+#         # Turbogenerator efficiency
+#         @model.parameter(element=tea.BT, units='%', distribution=EGeff_dist)
+#         def set_turbogenerator_efficiency(turbo_generator_efficiency):
+#             tea.BT.turbogenerator_efficiency = turbo_generator_efficiency
 
 # Fermentation efficiency
 # fermentation = lc.R301
@@ -290,7 +290,7 @@ if tea.BT:
 #  df_dct = model.get_distribution_summary()
 
 ### Perform Monte Carlo analysis ===============================================
-model.load_default_parameters(tea.feedstock,operating_days=True)
+# model.load_default_parameters(tea.feedstock,operating_days=True)
 np.random.seed(1688)
 N_samples = 100
 rule = 'L' # For Latin-Hypercube sampling

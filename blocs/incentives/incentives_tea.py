@@ -33,6 +33,7 @@ def create_corn_tea():
     tea.ethanol_group = bst.UnitGroup('Ethanol group', cn.corn_sys.units) # Assume all unit operations qualify
     tea.feedstock = cn.corn
     tea.DDGS = cn.DDGS
+    tea.V405 = cn.V405
     tea.crude_oil = cn.crude_oil
     return tea
 
