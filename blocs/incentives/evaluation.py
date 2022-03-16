@@ -223,41 +223,39 @@ def create_states_model(biorefinery):
             tea.feedstock.price = st_data.loc[state][f'{name} Price (USD/kg)']
             
             if state == 'Alabama':
-                tea.incentive_numbers = (8,9)
+                tea.incentive_numbers = (7,)
             elif state == 'Colorado':
-                tea.incentive_numbers = (10,)
+                tea.incentive_numbers = (8,)
             elif state == 'Hawaii':
-                tea.incentive_numbers = (11,)
+                tea.incentive_numbers = (9,)
             elif state == 'Iowa':
-                tea.incentive_numbers = (1,12,21)
+                tea.incentive_numbers = (1,10,18)
             elif state == 'Kansas':
                 tea.incentive_numbers = (2,)
             elif state == 'Kentucky':
                 if biorefinery == 'sugarcane':
-                    tea.incentive_numbers = (13,22)
+                    tea.incentive_numbers = (11,19)
                 else:
-                    tea.incentive_numbers = (13,14,22)
+                    tea.incentive_numbers = (11,12,19)
             elif state == 'Louisiana':
-                tea.incentive_numbers = (15,)
-            elif state == 'Michigan':
-                tea.incentive_numbers = (3,)
+                tea.incentive_numbers = (13,)
             elif state == 'Montana':
                 if biorefinery == 'corn':
-                    tea.incentive_numbers = (4,23)
+                    tea.incentive_numbers = (3,20)
                 else:
-                    tea.incentive_numbers = (4,)
+                    tea.incentive_numbers = (3,)
             elif state == 'Nebraska':
-                tea.incentive_numbers = (5,)
+                tea.incentive_numbers = (4,)
             elif state == 'New Mexico':
-                tea.incentive_numbers = (7,)
-            elif state == 'Oregon':
                 tea.incentive_numbers = (6,)
+            elif state == 'Oregon':
+                tea.incentive_numbers = (5,)
             elif state == 'South Carolina':
-                tea.incentive_numbers = (16,17)
+                tea.incentive_numbers = (14,15)
             elif state == 'Utah':
-                tea.incentive_numbers = (18,)
+                tea.incentive_numbers = (16,)
             elif state == 'Virginia':
-                tea.incentive_numbers = (19,)
+                tea.incentive_numbers = (17,)
                 
             return solve_price()
         return MFSP
@@ -491,7 +489,7 @@ def evaluate_SS(biorefinery, N=3000):
     model.evaluate()
     return model.table
 
-# Model for state specific analysis ===========================================
+# Model for analysis by incentivized parameters ===========================================
 def create_IPs_model(biorefinery):
     biorefinery = biorefinery.lower()
     if biorefinery == 'corn':
@@ -615,7 +613,7 @@ def create_IPs_model(biorefinery):
             return (2.98668849 * tea.solve_price(tea.ethanol_product) - MFSP_baseline_box[0])
         return MFSP
 
-    for incentive_number in range(1, 24):
+    for incentive_number in range(1, 21):
         element = f"Incentive {incentive_number}"
         model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
         model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
