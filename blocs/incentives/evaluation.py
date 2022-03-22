@@ -529,7 +529,7 @@ def create_IPs_model(biorefinery):
                 tea.ethanol_product.price = price
                 return tea.NPV
             (x0, x1, y0, y1) = flx.find_bracket(f, 0, 10)
-            MFSP = flx.IQ_interpolation(f, x0, x1, y0, y1, xtol=1e3, ytol=1e4, maxiter=100000)
+            MFSP = flx.IQ_interpolation(f, x0, x1, y0, y1, xtol=1e-3, ytol=1e4, maxiter=100000)
             tea.ethanol_product.price = original_price
         return 2.98668849 * MFSP
     
