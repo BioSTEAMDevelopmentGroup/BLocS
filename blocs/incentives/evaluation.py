@@ -8,7 +8,7 @@ Examples
 
 
 """
-
+import flexsolve as flx
 import biosteam as bst
 from chaospy import distributions as shape
 import blocs as blc
@@ -524,7 +524,13 @@ def create_IPs_model(biorefinery):
         try:
             MFSP = tea.solve_price(tea.ethanol_product)
         except:
-            MFSP = tea.solve_price([tea.ethanol_product], [4])
+            original_price = tea.ethanol_product.price
+            def f(price):
+                tea.ethanol_product.price = price
+                return tea.NPV
+            (x0, x1, y0, y1) = flx.find_bracket(f, 0, 10)
+            MFSP = flx.IQ_interpolation(f, x0, x1, y0, y1, xtol=1e-3, ytol=1e4, maxiter=100000)
+            tea.ethanol_product.price = original_price
         return 2.98668849 * MFSP
     
     @model.metric(name='Utility cost', units='10^6 USD/yr')
@@ -542,6 +548,10 @@ def create_IPs_model(biorefinery):
     @model.metric(name='Total capital investment', units='USD')
     def get_TCI():
         return tea.TCI
+    
+    @model.metric(name='Fixed capital investment', units='USD')
+    def get_FCI():
+        return tea.FCI
     
     @model.metric(name='Ethanol equipment cost', units='USD')
     def get_ETOH_eq():
@@ -591,7 +601,7 @@ def create_IPs_model(biorefinery):
     @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
         tea.incentive_numbers = ()
-        MFSP_baseline_box[0] = MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
+        MFSP_baseline_box[0] = MFSP = solve_price()
         return MFSP
 
     MFSP_baseline_box = [None]
@@ -604,13 +614,13 @@ def create_IPs_model(biorefinery):
     def MFSP_getter(incentive_number):
         def MFSP():
             tea.incentive_numbers = (incentive_number,)
-            return 2.98668849 * tea.solve_price(tea.ethanol_product)
+            return solve_price()
         return MFSP
 
     def MFSP_reduction_getter(incentive_number):
         def MFSP():
             tea.incentive_numbers = (incentive_number,)
-            return (2.98668849 * tea.solve_price(tea.ethanol_product) - MFSP_baseline_box[0])
+            return solve_price() - MFSP_baseline_box[0]
         return MFSP
 
     for incentive_number in range(1, 21):
@@ -668,6 +678,12 @@ def create_IPs_model(biorefinery):
         pretreatment_conversions = tea.R201.reactions.X
         cofermentation_conversions = tea.R303.cofermentation.X
         saccharification_conversions = tea.R303.saccharification.X
+        
+        SPTR_dist = shape.Triangle(0.0, 0.0136, 0.04)
+        @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist) #TODO
+        def set_state_property_tax(State_property_tax_rate):
+            tea.property_tax = State_property_tax_rate
+        
        
         @param(name='Cornstover price', element=cornstover, kind='isolated', 
                units='USD/ton', baseline=cornstover.price * kg_per_ton)
@@ -813,7 +829,26 @@ def evaluate_IP(biorefinery, N=3000):
     model.load_samples(samples)
     model.evaluate()
     return model.table
-    
+
+#Evaluate across coordinate
+def evaluate_coord(biorefinery, N=10):
+    model = create_IPs_model(biorefinery)
+    parameters = list(model.get_parameters())
+    parameters.remove('[TEA] State property tax rate (%)')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model.sample(N, rule)
+    model.load_samples(samples)
+    return model.evaluate_across_coordinate(
+                                            '[TEA] State property tax rate (%)',
+                                            set_state_property_tax,
+                                            np.linspace(
+                                            set_state_property_tax.distribution.lower.min(),
+                                            set_state_property_tax.distribution.upper.max(),
+                                            8,),
+                                            notify=True
+                                            )
+
 # fig, ax = bst.plots.plot_spearman_1d(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 # labels = [item.get_text() for item in ax.get_yticklabels()]
 # ax.set_yticklabels(labels)
