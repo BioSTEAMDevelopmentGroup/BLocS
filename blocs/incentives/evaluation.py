@@ -493,17 +493,14 @@ def evaluate_SS(biorefinery, N=3000):
 def create_IPs_model(biorefinery):
     biorefinery = biorefinery.lower()
     if biorefinery == 'corn':
-        name = 'CN'
         tea = blc.create_corn_tea()
         tea.feedstock.price = 0.1461
         
     elif biorefinery == 'cornstover':
-        name = 'CS'
         tea = blc.create_cornstover_tea()
         tea.feedstock.price = 0.0990
         
     elif biorefinery == 'sugarcane':
-        name = 'SC'
         tea = blc.create_sugarcane_tea()
         tea.feedstock.price = 0.0427
         
@@ -645,6 +642,45 @@ def create_IPs_model(biorefinery):
                 ub = bounds[1]
         distribution = shape.Uniform(lb, ub)
         return model.parameter(name=name, bounds=bounds, distribution=distribution, baseline=baseline, **kwargs)
+    
+    # TODO Only activate these first 6 parameters when using evaluate_across_X_parameter functions
+    # State income tax
+    # SITR_dist = shape.Triangle(0, 0.065, 0.12)
+    # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
+    # def set_state_income_tax(State_income_tax_rate):
+    #     tea.state_income_tax = State_income_tax_rate
+    
+    # Property tax
+    # SPTR_dist = shape.Triangle(0.0, 0.0136, 0.04)
+    # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist) 
+    # def set_state_property_tax(State_property_tax_rate):
+    #     tea.property_tax = State_property_tax_rate
+        
+    # State motor fuel tax
+    # SMFTR_dist = shape.Triangle(0, 0, 0.1)
+    # @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
+    # def set_motor_fuel_tax(fuel_tax_rate):
+    #     tea.fuel_tax = fuel_tax_rate
+        
+    # State sales tax
+    # SSTR_dist = shape.Triangle(0, 0.05875, 0.0725)
+    # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SSTR_dist)
+    # def set_sales_tax(sales_tax_rate):
+    #     tea.sales_tax = sales_tax_rate
+
+    # Electricity price
+    elec_utility = bst.PowerUtility
+    EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007)
+    @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
+                      distribution=EP_dist)
+    def set_elec_price(electricity_price):
+          elec_utility.price = electricity_price
+          
+    # Location capital cost factor
+    # LCCF_dist = shape.Triangle(0.8, 1, 1.2)
+    # @model.parameter(element='LCCF', kind='isolated', units='unitless', distribution=LCCF_dist)
+    # def set_LCCF(LCCF):
+    #     tea.F_investment = LCCF
 
     if biorefinery == 'corn':
         
@@ -668,22 +704,16 @@ def create_IPs_model(biorefinery):
         def set_crude_oil_price(price):
             tea.crude_oil.price = price / kg_per_ton
             
-        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-               baseline=bst.PowerUtility.price)
-        def set_electricity_price(price):
-            bst.PowerUtility.price = price  
+        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+        #         baseline=bst.PowerUtility.price)
+        # def set_electricity_price(price):
+        #     bst.PowerUtility.price = price  
 
     elif biorefinery == 'cornstover':   
         cornstover = feedstock
         pretreatment_conversions = tea.R201.reactions.X
         cofermentation_conversions = tea.R303.cofermentation.X
         saccharification_conversions = tea.R303.saccharification.X
-        
-        SPTR_dist = shape.Triangle(0.0, 0.0136, 0.04)
-        @model.parameter(element='TEA', kind='isolated', units='%', distribution=SPTR_dist) #TODO
-        def set_state_property_tax(State_property_tax_rate):
-            tea.property_tax = State_property_tax_rate
-        
        
         @param(name='Cornstover price', element=cornstover, kind='isolated', 
                units='USD/ton', baseline=cornstover.price * kg_per_ton)
@@ -696,10 +726,10 @@ def create_IPs_model(biorefinery):
         def set_cellulase_price(price):
             tea.cellulase.price = price / kg_per_ton
 
-        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-               baseline=bst.PowerUtility.price)
-        def set_electricity_price(price):
-            bst.PowerUtility.price = price    
+        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+        #        baseline=bst.PowerUtility.price)
+        # def set_electricity_price(price):
+        #     bst.PowerUtility.price = price    
 
         @param(name='Plant capacity', element=cornstover, kind='coupled', units='dry US ton/yr',
                baseline=(cornstover.F_mass - cornstover.imass['H2O']) * tea.operating_hours / kg_per_ton,
@@ -814,10 +844,10 @@ def create_IPs_model(biorefinery):
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
             
-        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-               baseline=bst.PowerUtility.price)
-        def set_electricity_price(price):
-            bst.PowerUtility.price = price  
+        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+        #        baseline=bst.PowerUtility.price)
+        # def set_electricity_price(price):
+        #     bst.PowerUtility.price = price  
 
     return model
 
@@ -830,25 +860,245 @@ def evaluate_IP(biorefinery, N=3000):
     model.evaluate()
     return model.table
 
-#Evaluate across coordinate
-def evaluate_coord(biorefinery, N=10):
+#Evaluate across property tax
+def evaluate_propT(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
     parameters = list(model.get_parameters())
-    parameters.remove('[TEA] State property tax rate (%)')
+    for parameter in parameters:
+        if parameter.name == 'State property tax rate':#TODO change this before running
+            set_state_property_tax = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
     np.random.seed(1688)
     rule = 'L' # For Latin-Hypercube sampling
-    samples = model.sample(N, rule)
-    model.load_samples(samples)
-    return model.evaluate_across_coordinate(
-                                            '[TEA] State property tax rate (%)',
-                                            set_state_property_tax,
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[TEA] State property tax rate (%)', #TODO change this before running
+                                            set_state_property_tax, #TODO change this before running
                                             np.linspace(
-                                            set_state_property_tax.distribution.lower.min(),
-                                            set_state_property_tax.distribution.upper.max(),
-                                            8,),
+                                            set_state_property_tax.distribution.lower.min(), #TODO change this before running
+                                            set_state_property_tax.distribution.upper.max(), #TODO change this before running
+                                            8,), #TODO change this before running
+                                            xlfile='Eval_across_st_prop_tax.xlsx', #TODO change this before running
                                             notify=True
                                             )
 
+#Evaluate across state income tax
+def evaluate_incT(biorefinery, N=1000):
+    model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
+    parameters = list(model.get_parameters())
+    for parameter in parameters:
+        if parameter.name == 'State income tax rate':
+            set_state_income_tax = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[TEA] State income tax rate (%)', 
+                                            set_state_income_tax, 
+                                            np.linspace(
+                                            set_state_income_tax.distribution.lower.min(), 
+                                            set_state_income_tax.distribution.upper.max(), 
+                                            24,), 
+                                            xlfile='Eval_across_st_inc_tax.xlsx', 
+                                            notify=True
+                                            )
+
+#Evaluate across fuel tax
+def evaluate_fuelT(biorefinery, N=1000):
+    model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
+    parameters = list(model.get_parameters())
+    for parameter in parameters:
+        if parameter.name == 'Fuel tax rate':
+            set_motor_fuel_tax = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[TEA] Fuel tax rate (%)', 
+                                            set_motor_fuel_tax, 
+                                            np.linspace(
+                                            set_motor_fuel_tax.distribution.lower.min(), 
+                                            set_motor_fuel_tax.distribution.upper.max(), 
+                                            20,), 
+                                            xlfile='Eval_across_fuel_tax.xlsx', 
+                                            notify=True
+                                            )
+
+#Evaluate across sales tax
+def evaluate_saleT(biorefinery, N=1000):
+    model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
+    parameters = list(model.get_parameters())
+    for parameter in parameters:
+        if parameter.name == 'Sales tax rate':
+            set_sales_tax = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[TEA] State sales tax rate (%)',
+                                            set_sales_tax, 
+                                            np.linspace(
+                                            set_sales_tax.distribution.lower.min(), 
+                                            set_sales_tax.distribution.upper.max(), 
+                                            14,), 
+                                            xlfile='Eval_across_st_sales_tax.xlsx', 
+                                            notify=True
+                                            )
+
+#Evaluate across LCCF
+def evaluate_LCCF(biorefinery, N=1000):
+    model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
+    parameters = list(model.get_parameters())
+    for parameter in parameters:
+        if parameter.name == 'LCCF':
+            set_LCCF = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[TEA] LCCF (unitless)', 
+                                            set_LCCF, 
+                                            np.linspace(
+                                            set_LCCF.distribution.lower.min(), 
+                                            set_LCCF.distribution.upper.max(), 
+                                            8,), 
+                                            xlfile='Eval_across_LCCF.xlsx', 
+                                            notify=True
+                                            )
+
+#Evaluate across electricity price
+def evaluate_elecP(biorefinery, N=1000):
+    model = create_IPs_model(biorefinery)
+    if biorefinery == 'corn':
+        tea = blc.create_corn_tea()
+        tea.feedstock.price = 0.1461
+        
+    elif biorefinery == 'cornstover':
+        tea = blc.create_cornstover_tea()
+        tea.feedstock.price = 0.0990
+        
+    elif biorefinery == 'sugarcane':
+        tea = blc.create_sugarcane_tea()
+        tea.feedstock.price = 0.0427
+        
+    parameters = list(model.get_parameters())
+    for parameter in parameters:
+        if parameter.name == 'Electricity price':
+            set_elec_price = parameter
+            parameters.remove(parameter)
+            break
+    model_ = bst.Model(tea.system,
+                       metrics=model.metrics,
+                       parameters=parameters,
+                       exception_hook='raise')
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model_.sample(N, rule)
+    model_.load_samples(samples)
+    return model_.evaluate_across_coordinate(
+                                            '[Power utility] Electricity price (USD/kWh)', 
+                                            set_elec_price, 
+                                            np.linspace(
+                                            set_elec_price.distribution.lower.min(), 
+                                            set_elec_price.distribution.upper.max(), 
+                                            10,), 
+                                            xlfile='Eval_across_elec_price.xlsx', 
+                                            notify=True
+                                            )
 # fig, ax = bst.plots.plot_spearman_1d(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 # labels = [item.get_text() for item in ax.get_yticklabels()]
 # ax.set_yticklabels(labels)
