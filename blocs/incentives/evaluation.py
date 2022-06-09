@@ -20,7 +20,7 @@ import os
 folder = os.path.dirname(__file__)
 st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
 st_data = pd.read_excel(st_data_file, index_col=[0])
-
+results_folder = os.path.join(folder, 'results')
 
 # Model for state specific analysis ===========================================
 def create_states_model(biorefinery):
@@ -170,7 +170,7 @@ def create_states_model(biorefinery):
     bst.PowerUtility.price = 0.0685
     tea.fuel_tax = 0.
     tea.sales_tax = 0.05785
-    tea.federal_income_tax = 0.35
+    tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
     tea.F_investment = 1
@@ -486,7 +486,8 @@ def evaluate_SS(biorefinery, N=3000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model.sample(N, rule)
     model.load_samples(samples)
-    model.evaluate()
+    model.evaluate(**evaluate_args('SS'))
+    model.table.to_excel(get_file_name('SS.xlsx'))
     return model.table
 
 # Model for analysis by incentivized parameters ===========================================
@@ -512,7 +513,7 @@ def create_IPs_model(biorefinery):
     bst.PowerUtility.price = 0.0685
     tea.fuel_tax = 0.
     tea.sales_tax = 0.05785
-    tea.federal_income_tax = 0.35
+    tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
     tea.F_investment = 1
@@ -851,13 +852,22 @@ def create_IPs_model(biorefinery):
 
     return model
 
+def get_file_name(name):
+    return os.path.join(results_folder, 'name')
+
+def evaluate_args(name):
+    return {'autoload': True,
+            'autosave': 20,
+            'file': get_file_name(name)}
+
 def evaluate_IP(biorefinery, N=3000):
     model = create_IPs_model(biorefinery)
     np.random.seed(1688)
     rule = 'L' # For Latin-Hypercube sampling
     samples = model.sample(N, rule)
     model.load_samples(samples)
-    model.evaluate()
+    model.evaluate(**evaluate_args('IP'))
+    model.table.to_excel(get_file_name('IP.xlsx'))
     return model.table
 
 #Evaluate across property tax
@@ -889,6 +899,11 @@ def evaluate_propT(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'propT_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[TEA] State property tax rate (%)', #TODO change this before running
                                             set_state_property_tax, #TODO change this before running
@@ -897,7 +912,8 @@ def evaluate_propT(biorefinery, N=1000):
                                             set_state_property_tax.distribution.upper.max(), #TODO change this before running
                                             8,), #TODO change this before running
                                             xlfile='Eval_across_st_prop_tax.xlsx', #TODO change this before running
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 
 #Evaluate across state income tax
@@ -929,6 +945,11 @@ def evaluate_incT(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'incT_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[TEA] State income tax rate (%)', 
                                             set_state_income_tax, 
@@ -937,7 +958,8 @@ def evaluate_incT(biorefinery, N=1000):
                                             set_state_income_tax.distribution.upper.max(), 
                                             24,), 
                                             xlfile='Eval_across_st_inc_tax.xlsx', 
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 
 #Evaluate across fuel tax
@@ -969,6 +991,11 @@ def evaluate_fuelT(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'fuelT_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[TEA] Fuel tax rate (%)', 
                                             set_motor_fuel_tax, 
@@ -977,7 +1004,8 @@ def evaluate_fuelT(biorefinery, N=1000):
                                             set_motor_fuel_tax.distribution.upper.max(), 
                                             20,), 
                                             xlfile='Eval_across_fuel_tax.xlsx', 
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 
 #Evaluate across sales tax
@@ -1009,6 +1037,11 @@ def evaluate_saleT(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'saleT_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[TEA] State sales tax rate (%)',
                                             set_sales_tax, 
@@ -1017,7 +1050,8 @@ def evaluate_saleT(biorefinery, N=1000):
                                             set_sales_tax.distribution.upper.max(), 
                                             14,), 
                                             xlfile='Eval_across_st_sales_tax.xlsx', 
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 
 #Evaluate across LCCF
@@ -1049,6 +1083,11 @@ def evaluate_LCCF(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'LCCF_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[TEA] LCCF (unitless)', 
                                             set_LCCF, 
@@ -1057,7 +1096,8 @@ def evaluate_LCCF(biorefinery, N=1000):
                                             set_LCCF.distribution.upper.max(), 
                                             8,), 
                                             xlfile='Eval_across_LCCF.xlsx', 
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 
 #Evaluate across electricity price
@@ -1089,6 +1129,11 @@ def evaluate_elecP(biorefinery, N=1000):
     rule = 'L' # For Latin-Hypercube sampling
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
+    nbox = [0]
+    def f_evaluate():
+        nbox[0] += 1
+        n = nbox[0]
+        model_.evaluate(**evaluate_args(f'elecP_{n}'))
     return model_.evaluate_across_coordinate(
                                             '[Power utility] Electricity price (USD/kWh)', 
                                             set_elec_price, 
@@ -1097,7 +1142,8 @@ def evaluate_elecP(biorefinery, N=1000):
                                             set_elec_price.distribution.upper.max(), 
                                             10,), 
                                             xlfile='Eval_across_elec_price.xlsx', 
-                                            notify=True
+                                            notify=True,
+                                            f_evaluate=f_evaluate,
                                             )
 # fig, ax = bst.plots.plot_spearman_1d(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 # labels = [item.get_text() for item in ax.get_yticklabels()]

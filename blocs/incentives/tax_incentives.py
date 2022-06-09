@@ -283,6 +283,7 @@ def determine_credit_amount(incentive_number,
         credit = np.where(credit > state_income_tax_assessed,
                           state_income_tax_assessed,
                           credit)
+        breakpoint()
     elif incentive_number == 14:
         params = ('TCI', 'property_tax_assessed')
         check_any_missing_parameter(lcs, params)

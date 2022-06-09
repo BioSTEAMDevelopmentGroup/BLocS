@@ -16,16 +16,18 @@ __all__ = (
     'create_corn_tea',
     'create_sugarcane_tea',
     'create_cornstover_tea',
+    'create_incentivized_tea',
     'ConventionalIncentivesTEA',
     'CellulosicIncentivesTEA',
 )
 
 def create_corn_tea():
-    tea = cn.create_tea(cn.corn_sys, cls=ConventionalIncentivesTEA)
+    tea = cs.create_tea(cn.corn_sys, cls=CellulosicIncentivesTEA)
+    # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
-    tea.federal_income_tax = 0.35
+    tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.013
     tea.utility_tax = 0.
@@ -38,11 +40,12 @@ def create_corn_tea():
     return tea
 
 def create_sugarcane_tea():
-    tea = sc.create_tea(sc.sugarcane_sys, cls=ConventionalIncentivesTEA)
+    tea = cs.create_tea(sc.sugarcane_sys, cls=CellulosicIncentivesTEA)
+    # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
-    tea.federal_income_tax = 0.35
+    tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.013
     tea.utility_tax = 0.
@@ -60,7 +63,7 @@ def create_cornstover_tea():
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
     tea.sales_tax = 0.
-    tea.federal_income_tax = 0.35
+    tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.013
     tea.utility_tax = 0.
@@ -74,6 +77,40 @@ def create_cornstover_tea():
     tea.property_tax = 0.001
     return tea
     
+# cellulosic: BT, feedstock, ethanol_product,
+
+def create_incentivized_tea(
+        system, isconventional, cogeneration_unit, feedstock, 
+        ethanol_product, state=None, **kwargs,
+    ):
+    TEA = ConventionalIncentivesTEA if isconventional else CellulosicIncentivesTEA
+    tea = TEA(system, income_tax=None, **kwargs)
+    tea.BT = cogeneration_unit
+    tea.feedstock = feedstock
+    tea.ethanol_product = ethanol_product
+    tea.utility_tax = 0.
+    if ethanol_product:
+        tea.ethanol_group = bst.UnitGroup('Ethanol group', system.units) 
+    else:
+        tea.ethanol_group = bst.UnitGroup('Ethanol group', ()) 
+    folder = os.path.dirname(__file__)
+    st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
+    st_data = pd.read_excel(st_data_file, index_col=[0])
+    if state:
+        tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
+        tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
+        tea.fuel_tax = st_data.loc[state]['State Motor Fuel Tax (decimal)']
+        tea.sales_tax = st_data.loc[state]['State Sales Tax Rate (decimal)']
+        bst.PowerUtility.price = st_data.loc[state]['Electricity Price (USD/kWh)']
+        tea.F_investment = st_data.loc[state]['Location Capital Cost Factor (dimensionless)']
+        if feedstock.ID == 'corn':
+            name = 'CN'
+        elif feedstock.ID == 'sugarcane':
+            name = 'SC'
+        elif feedstock.ID == 'cornstover':
+            name = 'CS'
+        tea.feedstock.price = st_data.loc[state][f'{name} Price (USD/kg)']
+    return tea
 
 class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
     
@@ -273,7 +310,6 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.utility_tax = utility_tax
         self.F_investment = F_investment
         self.BT = BT
-        self.lang_factor = 3
         
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
