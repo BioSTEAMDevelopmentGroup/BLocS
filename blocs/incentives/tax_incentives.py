@@ -36,6 +36,18 @@ def check_missing_parameter(p, name):
 def check_any_missing_parameter(dct, names):
     for i in names: check_missing_parameter(dct[i], i)
         
+def assess_incentive(start, duration, plant_years, incentive, ammount, assessed_tax, ub=None):
+    start = max(start, assessed_tax.argmax())
+    if start + duration > plant_years: start = plant_years - duration
+    incentive[start: start + duration] = ammount
+    if ub is not None: incentive[incentive > ub] = ub
+    incentive = np.where( 
+        incentive > assessed_tax,
+        assessed_tax,
+        incentive
+    )
+    return incentive
+    
 def determine_exemption_amount(incentive_number,
                                plant_years,
                                property_taxable_value=None,
@@ -278,22 +290,14 @@ def determine_credit_amount(incentive_number,
             credit_amount = 0.18 * TCI
         # There are other provisions to the incentive but they are more difficult to model so I will assume the maximum value is achieved via these provisions; DON'T MULTIPLY BY TAX RATE
         duration = 2 # Estimated, incentive description is not clear
-        credit[start: start + duration] = credit_amount
-        credit[credit > 1e6] = 1e6
-        credit = np.where(credit > state_income_tax_assessed,
-                          state_income_tax_assessed,
-                          credit)
-        breakpoint()
+        credit = assess_incentive(start, duration, plant_years, credit, credit_amount, state_income_tax_assessed, 1e6)
     elif incentive_number == 14:
         params = ('TCI', 'property_tax_assessed')
         check_any_missing_parameter(lcs, params)
         total_credit = 0.25 * TCI # Actually cost of constructing and equipping facility; DON'T MULTIPLY BY TAX RATE
         duration = 7
         credit_amount = total_credit/duration #credit must be taken in equal installments over duration
-        credit[start: start + duration] = credit_amount
-        credit = np.where(credit > property_tax_assessed,
-                          property_tax_assessed,
-                          credit)
+        credit = assess_incentive(start, duration, plant_years, credit, credit_amount, property_tax_assessed)
     elif incentive_number == 15:
         params = ('elec_eq', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
@@ -302,11 +306,8 @@ def determine_credit_amount(incentive_number,
         # else:
         #     credit_amount = 650000
         duration = 15
-        credit[start: start + duration] = 0.25 * elec_eq[start: start + duration] # DON'T MULTIPLY BY TAX RATE
-        credit[credit > 6.5e5] = 6.5e5
-        credit = np.where(credit > state_income_tax_assessed,
-                          state_income_tax_assessed,
-                          credit)
+        credit_amount = 0.25 * elec_eq[start: start + duration] # DON'T MULTIPLY BY TAX RATE
+        credit = assess_incentive(start, duration, plant_years, credit, credit_amount, state_income_tax_assessed, 6.5e5)
     elif incentive_number == 16:
         params = ('state_income_tax_assessed',)
         check_any_missing_parameter(lcs, params)

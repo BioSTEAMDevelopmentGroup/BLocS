@@ -22,7 +22,7 @@ __all__ = (
 )
 
 def create_corn_tea():
-    tea = cs.create_tea(cn.corn_sys, cls=CellulosicIncentivesTEA)
+    tea = cs.create_tea(cn.corn_sys, cls=ConventionalIncentivesTEA)
     # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
@@ -40,7 +40,7 @@ def create_corn_tea():
     return tea
 
 def create_sugarcane_tea():
-    tea = cs.create_tea(sc.sugarcane_sys, cls=CellulosicIncentivesTEA)
+    tea = cs.create_tea(sc.sugarcane_sys, cls=ConventionalIncentivesTEA)
     # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
@@ -311,13 +311,17 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.utility_tax = utility_tax
         self.F_investment = F_investment
         self.BT = BT
+        self.TDC_over_FCI = 0.625
         
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
     
-    def _FCI(self, TDC):
-        self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
-        return FCI
+    def _fill_depreciation_array(self, depreciation, start, years, FCI):
+        TDC = self.TDC_over_FCI * FCI
+        return super()._fill_depreciation_array( depreciation, start, years, TDC)
+    
+    def _DPI(self, installed_equipment_cost):
+        return self.F_investment * installed_equipment_cost
     
     def _FOC(self, FCI):
         return (FCI*(self.property_insurance + self.maintenance + self.administration)
