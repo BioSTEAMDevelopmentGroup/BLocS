@@ -158,7 +158,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
         return FCI
     
-    def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax):
+    def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax, depreciation):
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         lang_factor = self.lang_factor
         if lang_factor:
@@ -225,13 +225,13 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
         feedstock_value_arr = yearly_flows(feedstock_value, startup_VOCfrac)
         ethanol_arr = yearly_flows(ethanol, startup_VOCfrac)
-        taxable_property_arr = construction_flow(taxable_property).cumsum()
+        taxable_property_arr = (construction_flow(taxable_property) - depreciation).cumsum()
         elec_eq_arr = construction_flow(elec_eq).cumsum()
         biodiesel_eq_arr = construction_flow(biodiesel_eq).cumsum()
         ethanol_eq_arr = construction_flow(ethanol_eq).cumsum()
         converyor_cost_arr = construction_flow(converyor_costs).cumsum()
         # TODO: Remove depreciation from property tax (make sure TDC is less than FCI)
-        property_tax_arr = yearly_flows(FCI * self.property_tax, startup_FOCfrac)
+        property_tax_arr = taxable_property_arr * self.property_tax
         fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax
         purchase_cost_arr = construction_flow(self.purchase_cost)
