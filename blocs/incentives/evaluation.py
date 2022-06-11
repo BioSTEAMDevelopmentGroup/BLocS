@@ -236,7 +236,7 @@ def create_states_model(biorefinery):
                 if biorefinery == 'sugarcane':
                     tea.incentive_numbers = (11,19)
                 else:
-                    tea.incentive_numbers = (11,12,19)
+                    tea.incentive_numbers = (11,12,19) #need to cap value of incs 11+12 at inc tax amt
             elif state == 'Louisiana':
                 tea.incentive_numbers = (13,)
             elif state == 'Montana':
