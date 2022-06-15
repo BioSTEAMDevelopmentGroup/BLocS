@@ -45,6 +45,7 @@ def assess_incentive(start, duration, plant_years, incentive, amount, assessed_t
         assessed_tax,
         incentive
     )
+    assessed_tax -= incentive
     return incentive
 
 def assess_incentive_arr(start, duration, plant_years, incentive, amount, assessed_tax, ub=None):
@@ -57,6 +58,7 @@ def assess_incentive_arr(start, duration, plant_years, incentive, amount, assess
         assessed_tax,
         incentive
     )
+    assessed_tax -= incentive
     return incentive
     
 def determine_exemption_amount(incentive_number,
@@ -329,14 +331,14 @@ def determine_refund_amount(incentive_number,
         params = ('IA_value', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 1
-        refund_amount = sales_tax_rate * IA_value[start :start + duration] # Fees paid to (sub)contractors + cost of racks, shelving, conveyors
-        refund = assess_incentive(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
+        refund_amount = sales_tax_rate * IA_value # Fees paid to (sub)contractors + cost of racks, shelving, conveyors
+        refund = assess_incentive_arr(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
     elif incentive_number == 19:
         params = ('building_mats', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 1
-        refund_amount = sales_tax_rate  * building_mats[start :start + duration]# Cost of building and construction materials
-        refund = assess_incentive(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
+        refund_amount = sales_tax_rate  * building_mats # Cost of building and construction materials
+        refund = assess_incentive_arr(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
     elif incentive_number == 20:
         params = ('ethanol', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)

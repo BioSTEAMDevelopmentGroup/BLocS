@@ -22,7 +22,7 @@ __all__ = (
 )
 
 def create_corn_tea():
-    tea = cs.create_tea(cn.corn_sys, cls=ConventionalIncentivesTEA)
+    tea = cn.create_tea(cn.corn_sys, cls=ConventionalIncentivesTEA)
     # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
@@ -40,7 +40,7 @@ def create_corn_tea():
     return tea
 
 def create_sugarcane_tea():
-    tea = cs.create_tea(sc.sugarcane_sys, cls=ConventionalIncentivesTEA)
+    tea = sc.create_tea(sc.sugarcane_sys, cls=ConventionalIncentivesTEA)
     # TODO: Update according to biorefinery specific TEA
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.

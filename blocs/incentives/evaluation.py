@@ -853,12 +853,18 @@ def create_IPs_model(biorefinery):
     return model
 
 def get_file_name(name):
-    return os.path.join(results_folder, 'name')
+    return os.path.join(results_folder, name)
 
-def evaluate_args(name):
-    return {'autoload': True,
-            'autosave': 20,
-            'file': get_file_name(name)}
+def evaluate_args(name, nbox=None):
+    if nbox is None:
+        return {'autoload': True,
+                'autosave': 20,
+                'file': get_file_name(name)}
+    else:
+        nbox[0] += 1
+        return {'autoload': True,
+                'autosave': 20,
+                'file': get_file_name(os.path.join(name, str(nbox[0])))}
 
 def evaluate_IP(biorefinery, N=3000):
     model = create_IPs_model(biorefinery)
@@ -900,10 +906,8 @@ def evaluate_propT(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'propT_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args('propT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] State property tax rate (%)', #TODO change this before running
                                             set_state_property_tax, #TODO change this before running
@@ -911,7 +915,7 @@ def evaluate_propT(biorefinery, N=1000):
                                             set_state_property_tax.distribution.lower.min(), #TODO change this before running
                                             set_state_property_tax.distribution.upper.max(), #TODO change this before running
                                             8,), #TODO change this before running
-                                            xlfile='Eval_across_st_prop_tax.xlsx', #TODO change this before running
+                                            xlfile=get_file_name('Eval_across_st_prop_tax.xlsx'), #TODO change this before running
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
@@ -946,10 +950,8 @@ def evaluate_incT(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'incT_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args('incT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] State income tax rate (%)', 
                                             set_state_income_tax, 
@@ -957,7 +959,7 @@ def evaluate_incT(biorefinery, N=1000):
                                             set_state_income_tax.distribution.lower.min(), 
                                             set_state_income_tax.distribution.upper.max(), 
                                             24,), 
-                                            xlfile='Eval_across_st_inc_tax.xlsx', 
+                                            xlfile=get_file_name('Eval_across_st_inc_tax.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
@@ -992,10 +994,8 @@ def evaluate_fuelT(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'fuelT_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args('fuelT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] Fuel tax rate (%)', 
                                             set_motor_fuel_tax, 
@@ -1003,7 +1003,7 @@ def evaluate_fuelT(biorefinery, N=1000):
                                             set_motor_fuel_tax.distribution.lower.min(), 
                                             set_motor_fuel_tax.distribution.upper.max(), 
                                             20,), 
-                                            xlfile='Eval_across_fuel_tax.xlsx', 
+                                            xlfile=get_file_name('Eval_across_fuel_tax.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
@@ -1038,10 +1038,8 @@ def evaluate_saleT(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'saleT_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args('saleT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] State sales tax rate (%)',
                                             set_sales_tax, 
@@ -1049,7 +1047,7 @@ def evaluate_saleT(biorefinery, N=1000):
                                             set_sales_tax.distribution.lower.min(), 
                                             set_sales_tax.distribution.upper.max(), 
                                             14,), 
-                                            xlfile='Eval_across_st_sales_tax.xlsx', 
+                                            xlfile=get_file_name('Eval_across_st_sales_tax.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
@@ -1070,11 +1068,14 @@ def evaluate_LCCF(biorefinery, N=1000):
         tea.feedstock.price = 0.0427
         
     parameters = list(model.get_parameters())
+    set_LCCF = None
     for parameter in parameters:
         if parameter.name == 'LCCF':
             set_LCCF = parameter
             parameters.remove(parameter)
             break
+    if set_LCCF is None:
+        def set_LCCF(LCCF): tea.F_investment = LCCF
     model_ = bst.Model(tea.system,
                        metrics=model.metrics,
                        parameters=parameters,
@@ -1084,10 +1085,8 @@ def evaluate_LCCF(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'LCCF_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args(f'LCCF', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] LCCF (unitless)', 
                                             set_LCCF, 
@@ -1095,7 +1094,7 @@ def evaluate_LCCF(biorefinery, N=1000):
                                             set_LCCF.distribution.lower.min(), 
                                             set_LCCF.distribution.upper.max(), 
                                             8,), 
-                                            xlfile='Eval_across_LCCF.xlsx', 
+                                            xlfile=get_file_name('Eval_across_LCCF.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
@@ -1130,10 +1129,8 @@ def evaluate_elecP(biorefinery, N=1000):
     samples = model_.sample(N, rule)
     model_.load_samples(samples)
     nbox = [0]
-    def f_evaluate():
-        nbox[0] += 1
-        n = nbox[0]
-        model_.evaluate(**evaluate_args(f'elecP_{n}'))
+    def f_evaluate(notify=True):
+        model_.evaluate(**evaluate_args('elecP', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[Power utility] Electricity price (USD/kWh)', 
                                             set_elec_price, 
@@ -1141,7 +1138,7 @@ def evaluate_elecP(biorefinery, N=1000):
                                             set_elec_price.distribution.lower.min(), 
                                             set_elec_price.distribution.upper.max(), 
                                             10,), 
-                                            xlfile='Eval_across_elec_price.xlsx', 
+                                            xlfile=get_file_name('Eval_across_elec_price.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
