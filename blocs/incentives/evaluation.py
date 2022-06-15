@@ -601,9 +601,9 @@ def create_IPs_model(biorefinery):
         tea.incentive_numbers = ()
         return solve_price()
 
-    @model.metric(name="Material cost", units='USD/yr')
-    def material_cost():
-        return tea.material_cost
+    @model.metric(name="Ethanol production cost", units='USD/gal')
+    def ethanol_production_cost():
+        return tea.total_production_cost([tea.ethanol_product], with_annual_depreciation=False) / get_ethanol_production.get()
 
     get_exemptions = lambda: tea.exemptions.sum()
     get_deductions = lambda: tea.deductions.sum()
@@ -619,7 +619,7 @@ def create_IPs_model(biorefinery):
     def MFSP_reduction_getter(incentive_number):
         def MFSP():
             tea.incentive_numbers = (incentive_number,)
-            return solve_price() - MFSP_baseline.cache
+            return solve_price() - MFSP_baseline.get()
         return MFSP
 
     for incentive_number in range(1, 21):
