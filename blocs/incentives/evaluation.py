@@ -599,10 +599,11 @@ def create_IPs_model(biorefinery):
     @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
         tea.incentive_numbers = ()
-        MFSP_baseline_box[0] = MFSP = solve_price()
-        return MFSP
+        return solve_price()
 
-    MFSP_baseline_box = [None]
+    @model.metric(name="Material cost", units='USD/yr')
+    def material_cost():
+        return tea.material_cost
 
     get_exemptions = lambda: tea.exemptions.sum()
     get_deductions = lambda: tea.deductions.sum()
@@ -618,7 +619,7 @@ def create_IPs_model(biorefinery):
     def MFSP_reduction_getter(incentive_number):
         def MFSP():
             tea.incentive_numbers = (incentive_number,)
-            return solve_price() - MFSP_baseline_box[0]
+            return solve_price() - MFSP_baseline.cache
         return MFSP
 
     for incentive_number in range(1, 21):
