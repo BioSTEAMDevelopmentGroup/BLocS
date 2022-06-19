@@ -92,14 +92,12 @@ def create_states_model(biorefinery):
         tea = blc.create_cornstover_tea()
         all_states = [
                     'Alabama',
-                    'Arizona',
                     'Arkansas',
                     'California',
                     'Colorado',
                     'Delaware',
                     'Florida',
                     'Georgia',
-                    'Idaho',
                     'Illinois',
                     'Indiana',
                     'Iowa',
@@ -128,10 +126,8 @@ def create_states_model(biorefinery):
                     'Texas',
                     'Utah',
                     'Virginia',
-                    'Washington',
                     'West Virginia',
                     'Wisconsin',
-                    'Wyoming',
                     ]
         states_w_inc = [
                         'Alabama',
