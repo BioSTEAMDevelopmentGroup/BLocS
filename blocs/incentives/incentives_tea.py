@@ -144,6 +144,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.utility_tax = utility_tax
         self.F_investment = F_investment
         self.BT = BT
+        self.deduct_federal_income_tax_to_state_taxable_earnings = False
     
     def depreciation_incentive_24(self, switch):
         if switch:
@@ -240,7 +241,11 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         #here i took the absolute value of utility cost bc it will likely always be negative
         util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac)
         util_tax_arr = self.utility_tax * util_cost_arr
-        
+        federal_assessed_income_tax = taxable_cashflow * self.federal_income_tax
+        if self.deduct_federal_income_tax_to_state_taxable_earnings:
+            state_assessed_income_tax = (taxable_cashflow - federal_assessed_income_tax) * self.state_income_tax
+        else:
+            state_assessed_income_tax = taxable_cashflow * self.state_income_tax
         exemptions, deductions, credits, refunds = blc.determine_tax_incentives(
             self.incentive_numbers,
             start=self._start,
@@ -258,11 +263,11 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             wages=wages_arr,
             TCI=TCI,
             ethanol=ethanol_arr,
-            fed_income_tax_assessed=taxable_cashflow * self.federal_income_tax,
+            fed_income_tax_assessed=federal_assessed_income_tax,
             elec_eq=elec_eq_arr,
             jobs_50=50, # Assumption made by the original lipid-cane biorefinery publication 
             utility_tax_assessed=util_tax_arr,
-            state_income_tax_assessed=taxable_cashflow * self.state_income_tax,
+            state_income_tax_assessed=state_assessed_income_tax,
             property_tax_assessed=property_tax_arr,
             IA_value=converyor_cost_arr, 
             building_mats=purchase_cost_arr,
