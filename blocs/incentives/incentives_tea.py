@@ -317,6 +317,7 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.F_investment = F_investment
         self.BT = BT
         self.TDC_over_FCI = 0.625
+        self.deduct_federal_income_tax_to_state_taxable_earnings = False
         
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
