@@ -144,7 +144,10 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.utility_tax = utility_tax
         self.F_investment = F_investment
         self.BT = BT
+        self.jobs_50 = 50
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
+        self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
+        self.state_tax_by_gross_receipts = False
     
     def depreciation_incentive_24(self, switch):
         if switch:
@@ -237,13 +240,21 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         sales_tax = self.sales_tax
         purchase_cost_arr = construction_flow(self.purchase_cost)
         sales_arr = purchase_cost_arr + feedstock_value_arr
-        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax
-        #here i took the absolute value of utility cost bc it will likely always be negative
-        util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac)
+        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax       
+        util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac) # absolute value of utility cost bc it will likely always be negative
         util_tax_arr = self.utility_tax * util_cost_arr
         federal_assessed_income_tax = taxable_cashflow * self.federal_income_tax
         if self.deduct_federal_income_tax_to_state_taxable_earnings:
             state_assessed_income_tax = (taxable_cashflow - federal_assessed_income_tax) * self.state_income_tax
+        else:
+            state_assessed_income_tax = taxable_cashflow * self.state_income_tax
+        if self.deduct_half_federal_income_tax_to_state_taxable_earnings:
+            state_assessed_income_tax = (taxable_cashflow - (0.5*federal_assessed_income_tax)) * self.state_income_tax
+        else:
+            state_assessed_income_tax = taxable_cashflow * self.state_income_tax
+        if self.state_tax_by_gross_receipts:
+            revenue_arr = yearly_flows(self.sales, startup_VOCfrac)
+            state_assessed_income_tax = revenue_arr * self.state_income_tax
         else:
             state_assessed_income_tax = taxable_cashflow * self.state_income_tax
         exemptions, deductions, credits, refunds = blc.determine_tax_incentives(
@@ -265,7 +276,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             ethanol=ethanol_arr,
             fed_income_tax_assessed=federal_assessed_income_tax,
             elec_eq=elec_eq_arr,
-            jobs_50=50, # Assumption made by the original lipid-cane biorefinery publication 
+            jobs_50=self.jobs_50, # Assumption made by the original lipid-cane biorefinery publication 
             utility_tax_assessed=util_tax_arr,
             state_income_tax_assessed=state_assessed_income_tax,
             property_tax_assessed=property_tax_arr,
@@ -278,9 +289,12 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.credits = credits
         self.refunds = refunds
         index = taxable_cashflow > 0.
-        #i included utility tax here
-        tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr
-        tax[index] += (self.federal_income_tax + self.state_income_tax) * taxable_cashflow[index] 
+        tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr # utility tax included here but not currently considered
+        tax[index] += federal_assessed_income_tax[index] 
+        if self.state_tax_by_gross_receipts:
+            tax[:] += state_assessed_income_tax
+        else:
+            tax[index] += state_assessed_income_tax[index]
         maximum_incentives = credits + refunds + deductions + exemptions
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
@@ -317,6 +331,10 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.F_investment = F_investment
         self.BT = BT
         self.TDC_over_FCI = 0.625
+        self.jobs_50 = 50
+        self.deduct_federal_income_tax_to_state_taxable_earnings = False
+        self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
+        self.state_tax_by_gross_receipts = False
         
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives

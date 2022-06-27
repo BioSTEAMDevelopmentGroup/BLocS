@@ -170,6 +170,10 @@ def create_states_model(biorefinery):
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
     tea.F_investment = 1
+    if biorefinery == 'corn':
+        tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
+    else:
+        tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
     
     def get_state_incentives(state):
             avail_incentives = st_data.loc[state]['Incentives Available']
@@ -203,7 +207,17 @@ def create_states_model(biorefinery):
                 tea.state_tax_by_gross_receipts = True
             else:
                 tea.state_tax_by_gross_receipts = False
-            
+                
+            if state == 'Alabama' or state == 'Louisiana':
+                tea.deduct_federal_income_tax_to_state_taxable_earnings = True
+            else:
+                tea.deduct_federal_income_tax_to_state_taxable_earnings = False
+                
+            if state == 'Iowa' or state == 'Missouri':
+                tea.deduct_half_federal_income_tax_to_state_taxable_earnings = True
+            else:
+                tea.deduct_half_federal_income_tax_to_state_taxable_earnings = False
+                
             return solve_price()
         return MFSP
     
@@ -217,6 +231,21 @@ def create_states_model(biorefinery):
             tea.F_investment = st_data.loc[state]['Location Capital Cost Factor (dimensionless)']
             # tea.incentive_numbers = get_state_incentives(state)
             tea.feedstock.price = st_data.loc[state][f'{name} Price (USD/kg)']
+            
+            if state == 'Ohio' or state == 'Texas':
+                tea.state_tax_by_gross_receipts = True
+            else:
+                tea.state_tax_by_gross_receipts = False
+                
+            if state == 'Alabama' or state == 'Louisiana':
+                tea.deduct_federal_income_tax_to_state_taxable_earnings = True
+            else:
+                tea.deduct_federal_income_tax_to_state_taxable_earnings = False
+                
+            if state == 'Iowa' or state == 'Missouri':
+                tea.deduct_half_federal_income_tax_to_state_taxable_earnings = True
+            else:
+                tea.deduct_half_federal_income_tax_to_state_taxable_earnings = False
             
             if state == 'Alabama':
                 tea.incentive_numbers = (7,)
@@ -232,7 +261,7 @@ def create_states_model(biorefinery):
                 if biorefinery == 'sugarcane':
                     tea.incentive_numbers = (11,19)
                 else:
-                    tea.incentive_numbers = (11,12,19) #need to cap value of incs 11+12 at inc tax amt
+                    tea.incentive_numbers = (11,12,19)
             elif state == 'Louisiana':
                 tea.incentive_numbers = (13,)
             elif state == 'Montana':
@@ -513,6 +542,10 @@ def create_IPs_model(biorefinery):
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
     tea.F_investment = 1
+    if biorefinery == 'corn':
+        tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
+    else:
+        tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
     def solve_price():
         try:
@@ -667,12 +700,12 @@ def create_IPs_model(biorefinery):
     #     tea.sales_tax = sales_tax_rate
 
     # Electricity price
-    elec_utility = bst.PowerUtility
-    EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007)
-    @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
-                      distribution=EP_dist)
-    def set_elec_price(electricity_price):
-          elec_utility.price = electricity_price
+    # elec_utility = bst.PowerUtility
+    # EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007)
+    # @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
+    #                   distribution=EP_dist)
+    # def set_elec_price(electricity_price):
+    #       elec_utility.price = electricity_price
           
     # Location capital cost factor
     # LCCF_dist = shape.Triangle(0.8, 1, 1.2)
@@ -1083,7 +1116,7 @@ def evaluate_LCCF(biorefinery, N=1000):
     model_.load_samples(samples)
     nbox = [0]
     def f_evaluate(notify=True):
-        model_.evaluate(**evaluate_args(f'LCCF', nbox), notify=20)
+        model_.evaluate(**evaluate_args('LCCF', nbox), notify=20)
     return model_.evaluate_across_coordinate(
                                             '[TEA] LCCF (unitless)', 
                                             set_LCCF, 

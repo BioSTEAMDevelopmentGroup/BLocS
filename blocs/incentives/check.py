@@ -13,7 +13,7 @@ from biorefineries import cornstover as cs
 import blocs as blc
 tea = blc.create_incentivized_tea(
     system=sc.sugarcane_sys, 
-    incentive_numbers=[1,20], # incentives_info.xlsx
+    incentive_numbers=[17], # incentives_info.xlsx
     state='Louisiana',
     isconventional=True, 
     cogeneration_unit=sc.BT,
@@ -35,6 +35,7 @@ tea = blc.create_incentivized_tea(
     maintenance=0.01,
     administration=0.005,
 )
+tea.jobs_50=25
 tea.IRR = tea.solve_IRR()
 
 df = tea.get_cashflow_table()
