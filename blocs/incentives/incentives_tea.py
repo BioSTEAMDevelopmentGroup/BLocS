@@ -11,7 +11,7 @@ from biorefineries import sugarcane as sc
 from biorefineries import cornstover as cs
 import blocs as blc
 import biosteam as bst
-    
+
 __all__ = (
     'create_corn_tea',
     'create_sugarcane_tea',
@@ -76,11 +76,11 @@ def create_cornstover_tea():
     tea.R303 = cs.R303
     tea.property_tax = 0.001
     return tea
-    
+
 # cellulosic: BT, feedstock, ethanol_product,
 
 def create_incentivized_tea(
-        system, isconventional, cogeneration_unit, feedstock, 
+        system, isconventional, cogeneration_unit, feedstock,
         ethanol_product, state=None, **kwargs,
     ):
     TEA = ConventionalIncentivesTEA if isconventional else CellulosicIncentivesTEA
@@ -90,9 +90,9 @@ def create_incentivized_tea(
     tea.ethanol_product = ethanol_product
     tea.utility_tax = 0.
     if ethanol_product:
-        tea.ethanol_group = bst.UnitGroup('Ethanol group', system.units) 
+        tea.ethanol_group = bst.UnitGroup('Ethanol group', system.units)
     else:
-        tea.ethanol_group = bst.UnitGroup('Ethanol group', ()) 
+        tea.ethanol_group = bst.UnitGroup('Ethanol group', ())
     folder = os.path.dirname(__file__)
     st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
     st_data = pd.read_excel(st_data_file, index_col=[0])
@@ -113,14 +113,14 @@ def create_incentivized_tea(
     return tea
 
 class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
-    
-    def __init__(self, *args, incentive_numbers=(), 
+
+    def __init__(self, *args, incentive_numbers=(),
                  property_tax=None,
                  state_income_tax=None,
                  federal_income_tax=None,
-                 ethanol_product=None, 
+                 ethanol_product=None,
                  biodiesel_product=None,
-                 ethanol_group=None, 
+                 ethanol_group=None,
                  biodiesel_group=None,
                  sales_tax=None,
                  fuel_tax=None,
@@ -148,20 +148,20 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
         self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
         self.state_tax_by_gross_receipts = False
-    
+
     def depreciation_incentive_24(self, switch):
         if switch:
             self._depreciation_array = inc24 = self.depreciation_schedules[self.depreciation].copy()
             inc24[0] += 0.5
             inc24[1:] = inc24[1:] / (inc24[1:].sum() / (1 - inc24[0]))
-            np.testing.assert_allclose(inc24.sum(), 1.) 
+            np.testing.assert_allclose(inc24.sum(), 1.)
         else:
             self._depreciation_array = self.depreciation_schedules[self.depreciation]
-        
+
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
         return FCI
-    
+
     def _fill_tax_and_incentives(self, incentives, taxable_cashflow, nontaxable_cashflow, tax, depreciation):
         taxable_cashflow[taxable_cashflow < 0.] = 0.
         lang_factor = self.lang_factor
@@ -178,7 +178,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         fuel_value = 0.
         if ethanol_product:
             # Ethanol in gal/yr
-            ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours  
+            ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours
             fuel_value += ethanol_product.cost * operating_hours
             if lang_factor:
                 ethanol_eq = 1e6 * lang_factor * ethanol_group.get_purchase_cost()
@@ -186,12 +186,12 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
                 ethanol_eq = 1e6 * ethanol_group.get_installed_cost()
         else:
             ethanol = ethanol_eq = ethanol_sales = 0.
-        if biodiesel_product: 
+        if biodiesel_product:
             fuel_value += biodiesel_product.cost * operating_hours
             if lang_factor:
-                biodiesel_eq = 1e6 * lang_factor * biodiesel_group.get_purchase_cost() 
+                biodiesel_eq = 1e6 * lang_factor * biodiesel_group.get_purchase_cost()
             else:
-                biodiesel_eq = 1e6 * biodiesel_group.get_installed_cost() 
+                biodiesel_eq = 1e6 * biodiesel_group.get_installed_cost()
         else:
             biodiesel_eq = 0.
         feedstock = self.feedstock
@@ -212,19 +212,19 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         w0 = self._startup_time
         w1 = 1. - w0
         plant_years = start + years
-        empty_cashflows = np.zeros(plant_years)        
-        
+        empty_cashflows = np.zeros(plant_years)
+
         def yearly_flows(x, startup_frac):
             y = empty_cashflows.copy()
             y[start] = w0 * startup_frac * x + w1 * x
             y[start + 1:] = x
             return y
-        
+
         def construction_flow(x):
             y = empty_cashflows.copy()
             y[:start] = x * construction_schedule
             return y
-        
+
         wages_arr = yearly_flows(wages, startup_FOCfrac)
         fuel_value_arr = yearly_flows(fuel_value, startup_VOCfrac)
         feedstock_value_arr = yearly_flows(feedstock_value, startup_VOCfrac)
@@ -240,7 +240,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         sales_tax = self.sales_tax
         purchase_cost_arr = construction_flow(self.purchase_cost)
         sales_arr = purchase_cost_arr + feedstock_value_arr
-        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax       
+        sales_tax_arr = None if sales_tax is None else sales_arr * sales_tax
         util_cost_arr = yearly_flows(abs(self.utility_cost), startup_FOCfrac) # absolute value of utility cost bc it will likely always be negative
         util_tax_arr = self.utility_tax * util_cost_arr
         federal_assessed_income_tax = taxable_cashflow * self.federal_income_tax
@@ -264,7 +264,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             value_added=FCI,
             property_taxable_value=taxable_property_arr,
             property_tax_rate=self.property_tax,
-            biodiesel_eq=biodiesel_eq_arr, 
+            biodiesel_eq=biodiesel_eq_arr,
             ethanol_eq=ethanol_eq_arr,
             fuel_taxable_value=fuel_value_arr,
             fuel_tax_rate=self.fuel_tax,
@@ -276,11 +276,11 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             ethanol=ethanol_arr,
             fed_income_tax_assessed=federal_assessed_income_tax,
             elec_eq=elec_eq_arr,
-            jobs_50=self.jobs_50, # Assumption made by the original lipid-cane biorefinery publication 
+            jobs_50=self.jobs_50, # Assumption made by the original lipid-cane biorefinery publication
             utility_tax_assessed=util_tax_arr,
             state_income_tax_assessed=state_assessed_income_tax,
             property_tax_assessed=property_tax_arr,
-            IA_value=converyor_cost_arr, 
+            IA_value=converyor_cost_arr,
             building_mats=purchase_cost_arr,
             NM_value=elec_eq + feedstock_value_arr,
         )
@@ -290,7 +290,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.refunds = refunds
         index = taxable_cashflow > 0.
         tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr # utility tax included here but not currently considered
-        tax[index] += federal_assessed_income_tax[index] 
+        tax[index] += federal_assessed_income_tax[index]
         if self.state_tax_by_gross_receipts:
             tax[:] += state_assessed_income_tax
         else:
@@ -301,13 +301,13 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         incentives[:] = maximum_incentives
 
 class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
-    
-    def __init__(self, *args, incentive_numbers=(), 
+
+    def __init__(self, *args, incentive_numbers=(),
                  state_income_tax=None,
                  federal_income_tax=None,
-                 ethanol_product=None, 
+                 ethanol_product=None,
                  biodiesel_product=None,
-                 ethanol_group=None, 
+                 ethanol_group=None,
                  biodiesel_group=None,
                  sales_tax=None,
                  fuel_tax=None,
@@ -335,18 +335,17 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
         self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
         self.state_tax_by_gross_receipts = False
-        
+
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
-    
+
     def _fill_depreciation_array(self, depreciation, start, years, FCI):
         TDC = self.TDC_over_FCI * FCI
         return super()._fill_depreciation_array( depreciation, start, years, TDC)
-    
+
     def _DPI(self, installed_equipment_cost):
         return self.F_investment * installed_equipment_cost
-    
+
     def _FOC(self, FCI):
         return (FCI*(self.property_insurance + self.maintenance + self.administration)
                 + self.labor_cost*(1+self.fringe_benefits+self.supplies))
-    
