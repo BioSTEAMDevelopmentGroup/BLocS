@@ -619,7 +619,7 @@ def create_IPs_model(biorefinery):
 
     @model.metric(name='Assessed income tax', units='USD')
     def get_inc_tax():
-        return tea.state_income_tax * tea.sales
+        return tea.state_income_tax * tea.sales   
 
     @model.metric(name='Assessed fuel tax', units='USD')
     def get_fuel_tax():
@@ -629,10 +629,24 @@ def create_IPs_model(biorefinery):
     def MFSP_baseline():
         tea.incentive_numbers = ()
         return solve_price()
+    
+    @model.metric(name='Income Tax Contribution to MFSP', units='%') 
+    def inc_tax_contribution():
+        tea.state_income_tax = 0
+        return (MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
+    
+    @model.metric(name='Property Tax Contribution to MFSP', units='%') 
+    def prop_tax_contribution():
+        tea.property_tax = 0
+        return (MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
 
     @model.metric(name="Ethanol production cost", units='USD/gal')
     def ethanol_production_cost():
         return tea.total_production_cost([tea.ethanol_product], with_annual_depreciation=False) / get_ethanol_production.get()
+    
+    @model.metric(name='Capital Investment Contribution to MFSP', units='%')
+    def cap_inv_contribution():
+        return (MFSP_baseline.get() - ethanol_production_cost.get())/MFSP_baseline.get() * 100
 
     get_exemptions = lambda: tea.exemptions.sum()
     get_deductions = lambda: tea.deductions.sum()
@@ -648,8 +662,9 @@ def create_IPs_model(biorefinery):
     def MFSP_reduction_getter(incentive_number):
         def MFSP():
             tea.incentive_numbers = (incentive_number,)
-            return solve_price() - MFSP_baseline.get()
+            return (solve_price() - MFSP_baseline.get())/MFSP_baseline.get() * 100
         return MFSP
+    
 
     for incentive_number in range(1, 21):
         element = f"Incentive {incentive_number}"

@@ -35,7 +35,7 @@ tea = blc.create_incentivized_tea(
     maintenance=0.01,
     administration=0.005,
 )
-tea.jobs_50=25
+# tea.jobs_50=25
 tea.IRR = tea.solve_IRR()
 
 df = tea.get_cashflow_table()
