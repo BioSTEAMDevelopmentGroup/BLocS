@@ -289,7 +289,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.credits = credits
         self.refunds = refunds
         index = taxable_cashflow > 0.
-        tax[:] = property_tax_arr + fuel_tax_arr + util_tax_arr # utility tax included here but not currently considered
+        tax[:] = property_tax_arr + fuel_tax_arr + sales_tax_arr # util_tax_arr; utility tax not currently considered
         tax[index] += federal_assessed_income_tax[index]
         if self.state_tax_by_gross_receipts:
             tax[:] += state_assessed_income_tax

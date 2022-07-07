@@ -479,10 +479,10 @@ def create_states_model(biorefinery):
         def set_ferm_efficiency(eff):
             tea.R301.efficiency = eff
         
-        @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
-               units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
-        def set_vinasse_price(price):
-            tea.vinasse.price = price / kg_per_ton
+        # @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
+        #        units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
+        # def set_vinasse_price(price):
+        #     tea.vinasse.price = price / kg_per_ton
         
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -638,6 +638,11 @@ def create_IPs_model(biorefinery):
     @model.metric(name='Property Tax Contribution to MFSP', units='%') 
     def prop_tax_contribution():
         tea.property_tax = 0
+        return (MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
+    
+    @model.metric(name='Sales Tax Contribution to MFSP', units='%') 
+    def sales_tax_contribution():
+        tea.sales_tax = 0
         return (MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
 
     @model.metric(name="Ethanol production cost", units='USD/gal')
