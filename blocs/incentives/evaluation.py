@@ -582,10 +582,7 @@ def create_IPs_model(biorefinery):
 
     @model.metric(name='Ethanol equipment cost', units='USD')
     def get_ETOH_eq():
-        if tea.lang_factor:
-            ethanol_eq = 1e6 * tea.lang_factor * tea.ethanol_group.get_purchase_cost()
-        else:
-            ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
+        ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
         return ethanol_eq
 
     @model.metric(name='Electricity equipment cost', units='USD')
