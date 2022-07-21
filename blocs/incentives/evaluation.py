@@ -655,7 +655,7 @@ def create_IPs_model(biorefinery):
     def fuel_tax_contribution():
         param = tea.fuel_tax
         tea.fuel_tax = 0.05
-        value = -(MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
+        value = (solve_price() - MFSP_baseline.get())/solve_price() * 100
         tea.fuel_tax = param
         return value
 
@@ -666,6 +666,14 @@ def create_IPs_model(biorefinery):
     @model.metric(name='Capital Investment Contribution to MFSP', units='%')
     def cap_inv_contribution():
         return (MFSP_baseline.get() - ethanol_production_cost.get())/MFSP_baseline.get() * 100
+
+    @model.metric(name='Wages Contribution to MFSP', units='%')
+    def wage_contribution():
+        param = tea.labor_cost
+        tea.labor_cost = 0
+        value = (MFSP_baseline.get() - solve_price())/MFSP_baseline.get() * 100
+        tea.labor_cost = param
+        return value
 
     get_exemptions = lambda: tea.exemptions.sum()
     get_deductions = lambda: tea.deductions.sum()

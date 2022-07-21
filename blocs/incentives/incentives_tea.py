@@ -180,7 +180,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
             # Ethanol in gal/yr
             ethanol = 2.98668849 * ethanol_product.F_mass * operating_hours
             fuel_value += ethanol_product.cost * operating_hours
-            ethanol_eq = 1e6 * tea.ethanol_group.get_installed_cost()
+            ethanol_eq = 1e6 * ethanol_group.get_installed_cost()
         else:
             ethanol = ethanol_eq = ethanol_sales = 0.
         if biodiesel_product:
