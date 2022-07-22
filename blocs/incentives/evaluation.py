@@ -696,7 +696,7 @@ def create_IPs_model(biorefinery):
     for incentive_number in range(1, 21):
         element = f"Incentive {incentive_number}"
         model.metric(MFSP_getter(incentive_number), 'MFSP', 'USD/gal', element)
-        model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction', 'USD/gal', element)
+        model.metric(MFSP_reduction_getter(incentive_number), 'MFSP Reduction','%', element)
         model.metric(get_exemptions, 'Exemptions', 'USD', element)
         model.metric(get_deductions, 'Deductions', 'USD', element)
         model.metric(get_credits, 'Credits', 'USD', element)
@@ -898,10 +898,10 @@ def create_IPs_model(biorefinery):
         def set_ferm_efficiency(eff):
             tea.R301.efficiency = eff
 
-        @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
-               units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
-        def set_vinasse_price(price):
-            tea.vinasse.price = price / kg_per_ton
+        # @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
+        #        units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
+        # def set_vinasse_price(price):
+        #     tea.vinasse.price = price / kg_per_ton
 
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -965,7 +965,7 @@ def evaluate_propT(biorefinery, N=1000):
 
     parameters = list(model.get_parameters())
     for parameter in parameters:
-        if parameter.name == 'State property tax rate':#TODO change this before running
+        if parameter.name == 'State property tax rate':
             set_state_property_tax = parameter
             parameters.remove(parameter)
             break
@@ -981,13 +981,13 @@ def evaluate_propT(biorefinery, N=1000):
     def f_evaluate(notify=True):
         model_.evaluate(**evaluate_args('propT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
-                                            '[TEA] State property tax rate (%)', #TODO change this before running
-                                            set_state_property_tax, #TODO change this before running
+                                            '[TEA] State property tax rate (%)', 
+                                            set_state_property_tax, 
                                             np.linspace(
-                                            set_state_property_tax.distribution.lower.min(), #TODO change this before running
-                                            set_state_property_tax.distribution.upper.max(), #TODO change this before running
-                                            8,), #TODO change this before running
-                                            xlfile=get_file_name('Eval_across_st_prop_tax.xlsx'), #TODO change this before running
+                                            set_state_property_tax.distribution.lower.min(), 
+                                            set_state_property_tax.distribution.upper.max(), 
+                                            8,), 
+                                            xlfile=get_file_name('Eval_across_st_prop_tax.xlsx'), 
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )

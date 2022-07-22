@@ -231,7 +231,6 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         biodiesel_eq_arr = construction_flow(biodiesel_eq).cumsum()
         ethanol_eq_arr = construction_flow(ethanol_eq).cumsum()
         converyor_cost_arr = construction_flow(converyor_costs).cumsum()
-        # TODO: Remove depreciation from property tax (make sure TDC is less than FCI)
         property_tax_arr = taxable_property_arr * self.property_tax
         fuel_tax_arr = self.fuel_tax * fuel_value_arr
         sales_tax = self.sales_tax
