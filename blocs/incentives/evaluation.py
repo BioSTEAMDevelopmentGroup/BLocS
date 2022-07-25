@@ -338,15 +338,10 @@ def create_states_model(biorefinery):
 
     if biorefinery == 'corn':
 
-        @param(name='Corn price', element=feedstock, kind='isolated',
-               units='USD/ton', baseline=feedstock.price * kg_per_ton)
+        @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
-            feedstock.price = price / kg_per_ton
-
-        @model.parameter(element=tea.V405, kind='coupled', units='%',
-                          distribution=shape.Triangle(0.9,0.95,1))
-        def set_ferm_efficiency(conversion):
-            tea.V405.reaction.X = conversion
+            feedstock.price = price  
 
         @param(name='DDGS price', element=tea.DDGS, kind='isolated',
                units='USD/ton', baseline=tea.DDGS.price * kg_per_ton)
@@ -369,21 +364,16 @@ def create_states_model(biorefinery):
         cofermentation_conversions = tea.R303.cofermentation.X
         saccharification_conversions = tea.R303.saccharification.X
 
-        @param(name='Cornstover price', element=cornstover, kind='isolated',
-               units='USD/ton', baseline=cornstover.price * kg_per_ton)
+        @model.parameter(element=cornstover, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.10, 0.10, 1.2*0.10))
         def set_cornstover_price(price):
-            cornstover.price = price / kg_per_ton
+            cornstover.price = price
 
         @param(name='Enzyme price', element=tea.cellulase, kind='isolated',
                description='price of cellulase enzyme mixture containing 50 g of cellulase per 1000g of cocktail',
                units='$USD/ton', baseline=tea.cellulase.price * kg_per_ton)
         def set_cellulase_price(price):
             tea.cellulase.price = price / kg_per_ton
-
-        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-               baseline=bst.PowerUtility.price)
-        def set_electricity_price(price):
-            bst.PowerUtility.price = price
 
         @param(name='Plant capacity', element=cornstover, kind='coupled', units='dry US ton/yr',
                baseline=(cornstover.F_mass - cornstover.imass['H2O']) * tea.operating_hours / kg_per_ton,
@@ -466,23 +456,18 @@ def create_states_model(biorefinery):
                bounds=(0, 100))
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
+            
+        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+               baseline=bst.PowerUtility.price)
+        def set_electricity_price(price):
+            bst.PowerUtility.price = price
 
     elif biorefinery == 'sugarcane':
 
-        @param(name='Sugarcane price', element=feedstock, kind='isolated',
-               units='USD/ton', baseline=feedstock.price * kg_per_ton)
+        @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.04, 0.04, 1.2*0.04))
         def set_sugarcane_price(price):
-            feedstock.price = price / kg_per_ton
-
-        @model.parameter(element=tea.R301, kind='coupled', units='%',
-                         distribution=shape.Triangle(0.85,0.9,0.95))
-        def set_ferm_efficiency(eff):
-            tea.R301.efficiency = eff
-
-        # @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
-        #        units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
-        # def set_vinasse_price(price):
-        #     tea.vinasse.price = price / kg_per_ton
+            feedstock.price = price   
 
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -757,15 +742,10 @@ def create_IPs_model(biorefinery):
 
     if biorefinery == 'corn':
 
-        @param(name='Corn price', element=feedstock, kind='isolated',
-               units='USD/ton', baseline=feedstock.price * kg_per_ton)
+        @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
-            feedstock.price = price / kg_per_ton
-
-        @model.parameter(element=tea.V405, kind='coupled', units='%',
-                          distribution=shape.Triangle(0.9,0.95,1))
-        def set_ferm_efficiency(conversion):
-            tea.V405.reaction.X = conversion
+            feedstock.price = price        
 
         @param(name='DDGS price', element=tea.DDGS, kind='isolated',
                units='USD/ton', baseline=tea.DDGS.price * kg_per_ton)
@@ -777,10 +757,10 @@ def create_IPs_model(biorefinery):
         def set_crude_oil_price(price):
             tea.crude_oil.price = price / kg_per_ton
 
-        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-        #         baseline=bst.PowerUtility.price)
-        # def set_electricity_price(price):
-        #     bst.PowerUtility.price = price
+        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+                baseline=bst.PowerUtility.price)
+        def set_electricity_price(price):
+            bst.PowerUtility.price = price
 
     elif biorefinery == 'cornstover':
         cornstover = feedstock
@@ -788,21 +768,16 @@ def create_IPs_model(biorefinery):
         cofermentation_conversions = tea.R303.cofermentation.X
         saccharification_conversions = tea.R303.saccharification.X
 
-        @param(name='Cornstover price', element=cornstover, kind='isolated',
-               units='USD/ton', baseline=cornstover.price * kg_per_ton)
+        @model.parameter(element=cornstover, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.10, 0.10, 1.2*0.10))
         def set_cornstover_price(price):
-            cornstover.price = price / kg_per_ton
+            cornstover.price = price
 
         @param(name='Enzyme price', element=tea.cellulase, kind='isolated',
                description='price of cellulase enzyme mixture containing 50 g of cellulase per 1000g of cocktail',
                units='$USD/ton', baseline=tea.cellulase.price * kg_per_ton)
         def set_cellulase_price(price):
             tea.cellulase.price = price / kg_per_ton
-
-        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-        #        baseline=bst.PowerUtility.price)
-        # def set_electricity_price(price):
-        #     bst.PowerUtility.price = price
 
         @param(name='Plant capacity', element=cornstover, kind='coupled', units='dry US ton/yr',
                baseline=(cornstover.F_mass - cornstover.imass['H2O']) * tea.operating_hours / kg_per_ton,
@@ -885,23 +860,18 @@ def create_IPs_model(biorefinery):
                bounds=(0, 100))
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
+            
+        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+                baseline=bst.PowerUtility.price)
+        def set_electricity_price(price):
+            bst.PowerUtility.price = price
 
     elif biorefinery == 'sugarcane':
-
-        @param(name='Sugarcane price', element=feedstock, kind='isolated',
-               units='USD/ton', baseline=feedstock.price * kg_per_ton)
+            
+        @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
+                        distribution=shape.Triangle(0.8*0.04, 0.04, 1.2*0.04))
         def set_sugarcane_price(price):
-            feedstock.price = price / kg_per_ton
-
-        @model.parameter(element=tea.R301, kind='coupled', units='%',
-                         distribution=shape.Triangle(0.85,0.9,0.95))
-        def set_ferm_efficiency(eff):
-            tea.R301.efficiency = eff
-
-        # @param(name='Vinasse price', element=tea.vinasse, kind='isolated',
-        #        units='USD/ton', baseline=tea.vinasse.price * kg_per_ton)
-        # def set_vinasse_price(price):
-        #     tea.vinasse.price = price / kg_per_ton
+            feedstock.price = price   
 
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -917,10 +887,10 @@ def create_IPs_model(biorefinery):
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
 
-        # @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
-        #        baseline=bst.PowerUtility.price)
-        # def set_electricity_price(price):
-        #     bst.PowerUtility.price = price
+        @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
+                baseline=bst.PowerUtility.price)
+        def set_electricity_price(price):
+            bst.PowerUtility.price = price
 
     return model
 
@@ -981,13 +951,13 @@ def evaluate_propT(biorefinery, N=1000):
     def f_evaluate(notify=True):
         model_.evaluate(**evaluate_args('propT', nbox), notify=20)
     return model_.evaluate_across_coordinate(
-                                            '[TEA] State property tax rate (%)', 
-                                            set_state_property_tax, 
+                                            '[TEA] State property tax rate (%)',
+                                            set_state_property_tax,
                                             np.linspace(
-                                            set_state_property_tax.distribution.lower.min(), 
-                                            set_state_property_tax.distribution.upper.max(), 
-                                            8,), 
-                                            xlfile=get_file_name('Eval_across_st_prop_tax.xlsx'), 
+                                            set_state_property_tax.distribution.lower.min(),
+                                            set_state_property_tax.distribution.upper.max(),
+                                            8,),
+                                            xlfile=get_file_name('Eval_across_st_prop_tax.xlsx'),
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
