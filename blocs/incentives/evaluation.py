@@ -163,13 +163,14 @@ def create_states_model(biorefinery):
                          "'corn', 'cornstover', or 'sugarcane'")
 
     model = bst.Model(tea.system, exception_hook='raise')
-    bst.PowerUtility.price = 0.0685
+    bst.PowerUtility.price = 0.0681
+    bst.CE = 596.2
     tea.fuel_tax = 0.
     tea.sales_tax = 0.05785
     tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
-    tea.F_investment = 1
+    tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
     else:
@@ -365,7 +366,7 @@ def create_states_model(biorefinery):
         saccharification_conversions = tea.R303.saccharification.X
 
         @model.parameter(element=cornstover, kind='isolated', units='USD/ton',
-                        distribution=shape.Triangle(0.8*0.10, 0.10, 1.2*0.10))
+                        distribution=shape.Triangle(0.8*0.0994, 0.0994, 1.2*0.0994))
         def set_cornstover_price(price):
             cornstover.price = price
 
@@ -465,7 +466,7 @@ def create_states_model(biorefinery):
     elif biorefinery == 'sugarcane':
 
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
-                        distribution=shape.Triangle(0.8*0.04, 0.04, 1.2*0.04))
+                        distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
             feedstock.price = price   
 
@@ -505,28 +506,28 @@ def create_IPs_model(biorefinery):
     biorefinery = biorefinery.lower()
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     else:
         raise ValueError("invalid biorefinery; must be either "
                          "'corn', 'cornstover', or 'sugarcane'")
 
     model = bst.Model(tea.system, exception_hook='raise')
-    bst.PowerUtility.price = 0.0685
+    bst.PowerUtility.price = 0.0681
     tea.fuel_tax = 0.
     tea.sales_tax = 0.05785
     tea.federal_income_tax = 0.21
     tea.state_income_tax = 0.065
     tea.property_tax = 0.0136
-    tea.F_investment = 1
+    tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
     else:
@@ -728,7 +729,7 @@ def create_IPs_model(biorefinery):
 
     # Electricity price
     # elec_utility = bst.PowerUtility
-    # EP_dist = shape.Triangle(0.0471, 0.0685, 0.1007)
+    # EP_dist = shape.Triangle(0.0459, 0.0681, 0.1072)
     # @model.parameter(element=elec_utility, kind='isolated', units='USD/kWh',
     #                   distribution=EP_dist)
     # def set_elec_price(electricity_price):
@@ -769,7 +770,7 @@ def create_IPs_model(biorefinery):
         saccharification_conversions = tea.R303.saccharification.X
 
         @model.parameter(element=cornstover, kind='isolated', units='USD/ton',
-                        distribution=shape.Triangle(0.8*0.10, 0.10, 1.2*0.10))
+                        distribution=shape.Triangle(0.8*0.0994, 0.0994, 1.2*0.0994))
         def set_cornstover_price(price):
             cornstover.price = price
 
@@ -869,7 +870,7 @@ def create_IPs_model(biorefinery):
     elif biorefinery == 'sugarcane':
             
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
-                        distribution=shape.Triangle(0.8*0.04, 0.04, 1.2*0.04))
+                        distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
             feedstock.price = price   
 
@@ -923,15 +924,15 @@ def evaluate_propT(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     for parameter in parameters:
@@ -967,15 +968,15 @@ def evaluate_incT(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     for parameter in parameters:
@@ -1011,15 +1012,15 @@ def evaluate_fuelT(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     for parameter in parameters:
@@ -1055,15 +1056,15 @@ def evaluate_saleT(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     for parameter in parameters:
@@ -1099,15 +1100,15 @@ def evaluate_LCCF(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     set_LCCF = None
@@ -1146,15 +1147,15 @@ def evaluate_elecP(biorefinery, N=1000):
     model = create_IPs_model(biorefinery)
     if biorefinery == 'corn':
         tea = blc.create_corn_tea()
-        tea.feedstock.price = 0.1461
+        tea.feedstock.price = 0.1500
 
     elif biorefinery == 'cornstover':
         tea = blc.create_cornstover_tea()
-        tea.feedstock.price = 0.0990
+        tea.feedstock.price = 0.0994
 
     elif biorefinery == 'sugarcane':
         tea = blc.create_sugarcane_tea()
-        tea.feedstock.price = 0.0427
+        tea.feedstock.price = 0.0332
 
     parameters = list(model.get_parameters())
     for parameter in parameters:

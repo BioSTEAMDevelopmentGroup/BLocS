@@ -35,8 +35,26 @@ def create_corn_tea():
     tea.ethanol_group = bst.UnitGroup('Ethanol group', cn.corn_sys.units) # Assume all unit operations qualify
     tea.feedstock = cn.corn
     tea.DDGS = cn.DDGS
+    tea.DDGS.price = 0.13709
     tea.V405 = cn.V405
     tea.crude_oil = cn.crude_oil
+    tea.crude_oil.price = 0.64
+    tea.sulfuric_acid = cn.sulfuric_acid
+    tea.sulfuric_acid.price = 0.1070
+    tea.lime = cn.lime
+    tea.lime.price = 0.2958
+    tea.alpha_amylase = cn.alpha_amylase
+    tea.alpha_amylase.price = 2.56
+    tea.gluco_amylase = cn.gluco_amylase
+    tea.gluco_amylase.price = 2.56
+    tea.ammonia = cn.ammonia
+    tea.ammonia.price = 0.4727
+    tea.denaturant = cn.denaturant
+    tea.denaturant.price = 0.496
+    tea.steam = cn.steam
+    tea.steam.price = 0.01466
+    tea.yeast = cn.yeast
+    tea.yeast.price = 2.12
     return tea
 
 def create_sugarcane_tea():
@@ -56,6 +74,14 @@ def create_sugarcane_tea():
     tea.vinasse = sc.vinasse
     tea.R301 = sc.R301
     tea.property_tax = 0.001
+    tea.lime = sc.lime
+    tea.lime.price = 0.2958
+    tea.denaturant = sc.denaturant
+    tea.denaturant.price = 0.496
+    tea.cooling_tower_chemicals = sc.cooling_tower_chemicals
+    tea.cooling_tower_chemicals.price = 4.4385
+    tea.makeup_water = sc.makeup_water
+    tea.makeup_water.price = 0.0005
     return tea
 
 def create_cornstover_tea():
@@ -72,9 +98,30 @@ def create_cornstover_tea():
     tea.BT = cs.BT
     tea.feedstock = cs.cornstover
     tea.cellulase = cs.cellulase
+    tea.cellulase.price = 0.258
     tea.R201 = cs.R201
     tea.R303 = cs.R303
     tea.property_tax = 0.001
+    tea.sulfuric_acid = cs.sulfuric_acid
+    tea.sulfuric_acid.price = 0.1070
+    tea.FGD_lime = cs.FGD_lime
+    tea.FGD_lime.price = 0.2958
+    tea.denaturant = cs.denaturant
+    tea.denaturant.price = 0.496
+    tea.cooling_tower_chemicals = cs.cooling_tower_chemicals
+    tea.cooling_tower_chemicals.price = 4.4385
+    tea.makeup_water = cs.makeup_water
+    tea.makeup_water.price = 0.0005
+    tea.CSL = cs.CSL
+    tea.CSL.price = 0.0843
+    tea.DAP = cs.DAP
+    tea.DAP.price = 0.4092
+    tea.ammonia = cs.ammonia
+    tea.ammonia.price = 0.4727
+    tea.boilerchems = cs.boilerchems
+    tea.boilerchems.price = 7.4062
+    tea.caustic = cs.caustic
+    tea.caustic.price = 0.5931
     return tea
 
 # cellulosic: BT, feedstock, ethanol_product,
@@ -148,6 +195,7 @@ class CellulosicIncentivesTEA(cs.CellulosicEthanolTEA):
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
         self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
         self.state_tax_by_gross_receipts = False
+        self.labor_cost *= (26.03/19.55) # BLS labor indices for years 2020/2007
 
     def depreciation_incentive_24(self, switch):
         if switch:
@@ -331,6 +379,7 @@ class ConventionalIncentivesTEA(sc.ConventionalEthanolTEA):
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
         self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
         self.state_tax_by_gross_receipts = False
+        self.labor_cost *= (26.03/21.40) # BLS labor indices for years 2020/2013
 
     depreciation_incentive_24 = CellulosicIncentivesTEA.depreciation_incentive_24
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
