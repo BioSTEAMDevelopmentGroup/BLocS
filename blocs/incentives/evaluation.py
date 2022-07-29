@@ -304,14 +304,22 @@ def create_states_model(biorefinery):
 
     @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
     def MFSP_baseline():
+        names = (
+            'state_income_tax', 'property_tax', 'fuel_tax', 'sales_tax', 'F_investment',
+            'incentive_numbers',
+        )
+        dct_old = {i: getattr(tea, i) for i in names}
         tea.state_income_tax = 0
         tea.property_tax = 0.001
         tea.fuel_tax = 0
         tea.sales_tax = 0
-        bst.PowerUtility.price = 0.0571675
         tea.F_investment = 1
         tea.incentive_numbers = ()
+        old_price = bst.PowerUtility.price
+        bst.PowerUtility.price = 0.0571675
         MFSP = 2.98668849 * tea.solve_price(tea.ethanol_product)
+        for i, j in dct_old.items(): setattr(tea, i, j)
+        bst.PowerUtility.price = old_price
         return MFSP
 
     get_inc_value = lambda: tea.exemptions.sum() + tea.deductions.sum() + tea.credits.sum()+ tea.refunds.sum()
@@ -533,18 +541,17 @@ def create_IPs_model(biorefinery):
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
-    def solve_price():
-        try:
-            MFSP = tea.solve_price(tea.ethanol_product)
-        except:
-            original_price = tea.ethanol_product.price
-            def f(price):
-                tea.ethanol_product.price = price
-                return tea.NPV
-            (x0, x1, y0, y1) = flx.find_bracket(f, 0, 10)
-            MFSP = flx.IQ_interpolation(f, x0, x1, y0, y1, xtol=1e-3, ytol=1e4, maxiter=100000)
-            tea.ethanol_product.price = original_price
+    def solve_price(set_price=False):
+        MFSP = tea.solve_price(tea.ethanol_product)
+        if set_price: tea.ethanol_product.price = MFSP
         return 2.98668849 * MFSP
+
+    @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
+    def MFSP_baseline():
+        tea.incentive_numbers = ()
+        # Set price of ethanol so that sales and MFSP contributions are scaled accordingly
+        # If ethanol price is not set to baseline, then MFSP contribution of get_inc_tax may be greater that 100% and not consistent between biorefineries
+        return solve_price(set_price=True)
 
     @model.metric(name='Utility cost', units='10^6 USD/yr')
     def get_utility_cost():
@@ -607,11 +614,6 @@ def create_IPs_model(biorefinery):
     @model.metric(name='Assessed fuel tax', units='USD')
     def get_fuel_tax():
         return tea.fuel_tax * get_ethanol_production.get()
-
-    @model.metric(name="Baseline MFSP", units='USD/gal') #within this function, set whatever parameter values you want to use as the baseline
-    def MFSP_baseline():
-        tea.incentive_numbers = ()
-        return solve_price()
 
     @model.metric(name='Income Tax Contribution to MFSP', units='%')
     def inc_tax_contribution():

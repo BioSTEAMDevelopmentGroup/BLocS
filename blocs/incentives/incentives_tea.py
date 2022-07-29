@@ -11,6 +11,8 @@ from biorefineries import sugarcane as sc
 from biorefineries import cornstover as cs
 import blocs as blc
 import biosteam as bst
+cs._include_blowdown_recycle = False
+cs.load()
 
 __all__ = (
     'create_corn_tea',
@@ -84,7 +86,7 @@ def create_sugarcane_tea():
     tea.makeup_water.price = 0.0005
     return tea
 
-def create_cornstover_tea():
+def create_cornstover_tea():    
     tea = cs.create_tea(cs.cornstover_sys, cls=CellulosicIncentivesTEA)
     tea.incentive_numbers = () # Empty for now
     tea.fuel_tax = 0.
@@ -118,8 +120,8 @@ def create_cornstover_tea():
     tea.DAP.price = 0.4092
     tea.ammonia = cs.ammonia
     tea.ammonia.price = 0.4727
-    tea.boilerchems = cs.boilerchems
-    tea.boilerchems.price = 7.4062
+    tea.boiler_chemicals = cs.boiler_chemicals
+    tea.boiler_chemicals.price = 7.4062
     tea.caustic = cs.caustic
     tea.caustic.price = 0.5931
     return tea
