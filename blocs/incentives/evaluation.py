@@ -195,6 +195,20 @@ def create_states_model(biorefinery):
 
     def MFSP_getter(state):
         def MFSP():
+            names = (
+                'state_income_tax', 
+                'property_tax',
+                'fuel_tax',
+                'sales_tax',
+                'F_investment',
+                'state_tax_by_gross_receipts',
+                'deduct_federal_income_tax_to_state_taxable_earnings',
+                'deduct_half_federal_income_tax_to_state_taxable_earnings',
+                'incentive_numbers',
+            )
+            original_feedstock_price = tea.feedstock.price
+            original_electricity_price = bst.PowerUtility.price
+            dct = {i: getattr(tea, i) for i in names}
             tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
             tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
             tea.fuel_tax = st_data.loc[state]['State Motor Fuel Tax (decimal)']
@@ -219,11 +233,29 @@ def create_states_model(biorefinery):
             else:
                 tea.deduct_half_federal_income_tax_to_state_taxable_earnings = False
 
-            return solve_price()
+            MFSP = solve_price()
+            tea.feedstock.price = original_feedstock_price
+            bst.PowerUtility.price = original_electricity_price
+            for i in names: setattr(tea, i, dct[i])
+            return MFSP
         return MFSP
 
     def MFSP_w_inc_getter(state):
         def MFSP():
+            names = (
+                'state_income_tax', 
+                'property_tax',
+                'fuel_tax',
+                'sales_tax',
+                'F_investment',
+                'state_tax_by_gross_receipts',
+                'deduct_federal_income_tax_to_state_taxable_earnings',
+                'deduct_half_federal_income_tax_to_state_taxable_earnings',
+                'incentive_numbers',
+            )
+            original_feedstock_price = tea.feedstock.price
+            original_electricity_price = bst.PowerUtility.price
+            dct = {i: getattr(tea, i) for i in names}
             tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
             tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
             tea.fuel_tax = st_data.loc[state]['State Motor Fuel Tax (decimal)']
@@ -283,7 +315,11 @@ def create_states_model(biorefinery):
             elif state == 'Virginia':
                 tea.incentive_numbers = (17,)
 
-            return solve_price()
+            MFSP = solve_price()
+            tea.feedstock.price = original_feedstock_price
+            bst.PowerUtility.price = original_electricity_price
+            for i in names: setattr(tea, i, dct[i])
+            return MFSP
         return MFSP
 
     @model.metric(name='Utility cost', units='10^6 USD/yr')
