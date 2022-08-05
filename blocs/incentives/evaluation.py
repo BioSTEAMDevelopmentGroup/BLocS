@@ -173,6 +173,7 @@ def create_states_model(biorefinery):
     tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
+        model.specification = lambda: None # No need to rerun mass and energy balance (nothing should change for corn)
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
