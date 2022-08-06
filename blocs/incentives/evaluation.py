@@ -780,10 +780,10 @@ def create_IPs_model(biorefinery):
     #     tea.property_tax = State_property_tax_rate
 
     # State motor fuel tax
-    SMFTR_dist = shape.Triangle(0, 0, 0.05)
-    @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
-    def set_motor_fuel_tax(fuel_tax_rate):
-        tea.fuel_tax = fuel_tax_rate
+    # SMFTR_dist = shape.Triangle(0, 0, 0.05)
+    # @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
+    # def set_motor_fuel_tax(fuel_tax_rate):
+    #     tea.fuel_tax = fuel_tax_rate
 
     # State sales tax
     # SSTR_dist = shape.Triangle(0, 0.05875, 0.0725)
