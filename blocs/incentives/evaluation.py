@@ -173,6 +173,7 @@ def create_states_model(biorefinery):
     tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
+        model.specification = lambda: None # No need to rerun mass and energy balance (nothing should change for corn)
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
@@ -195,6 +196,20 @@ def create_states_model(biorefinery):
 
     def MFSP_getter(state):
         def MFSP():
+            names = (
+                 'state_income_tax', 
+                 'property_tax',
+                 'fuel_tax',
+                 'sales_tax',
+                 'F_investment',
+                 'state_tax_by_gross_receipts',
+                 'deduct_federal_income_tax_to_state_taxable_earnings',
+                 'deduct_half_federal_income_tax_to_state_taxable_earnings',
+                 'incentive_numbers',
+             )
+            original_feedstock_price = tea.feedstock.price
+            original_electricity_price = bst.PowerUtility.price
+            dct = {i: getattr(tea, i) for i in names}
             tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
             tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
             tea.fuel_tax = st_data.loc[state]['State Motor Fuel Tax (decimal)']
@@ -219,11 +234,29 @@ def create_states_model(biorefinery):
             else:
                 tea.deduct_half_federal_income_tax_to_state_taxable_earnings = False
 
-            return solve_price()
+            MFSP = solve_price()
+            tea.feedstock.price = original_feedstock_price
+            bst.PowerUtility.price = original_electricity_price
+            for i in names: setattr(tea, i, dct[i])
+            return MFSP
         return MFSP
 
     def MFSP_w_inc_getter(state):
         def MFSP():
+            names = (
+                 'state_income_tax', 
+                 'property_tax',
+                 'fuel_tax',
+                 'sales_tax',
+                 'F_investment',
+                 'state_tax_by_gross_receipts',
+                 'deduct_federal_income_tax_to_state_taxable_earnings',
+                 'deduct_half_federal_income_tax_to_state_taxable_earnings',
+                 'incentive_numbers',
+             )
+            original_feedstock_price = tea.feedstock.price
+            original_electricity_price = bst.PowerUtility.price
+            dct = {i: getattr(tea, i) for i in names}
             tea.state_income_tax = st_data.loc[state]['Income Tax Rate (decimal)']
             tea.property_tax = st_data.loc[state]['Property Tax Rate (decimal)']
             tea.fuel_tax = st_data.loc[state]['State Motor Fuel Tax (decimal)']
@@ -283,7 +316,11 @@ def create_states_model(biorefinery):
             elif state == 'Virginia':
                 tea.incentive_numbers = (17,)
 
-            return solve_price()
+            MFSP = solve_price()
+            tea.feedstock.price = original_feedstock_price
+            bst.PowerUtility.price = original_electricity_price
+            for i in names: setattr(tea, i, dct[i])
+            return MFSP
         return MFSP
 
     @model.metric(name='Utility cost', units='10^6 USD/yr')
@@ -351,6 +388,18 @@ def create_states_model(biorefinery):
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
             feedstock.price = price  
+            
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+               description="annual feestock processing capacity")
+        def set_plant_size(flow_rate):
+            dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            
+        @model.parameter(element=tea.V405, kind='coupled', units='%',
+                         distribution=shape.Triangle(0.9,0.95,1))
+        def set_ferm_efficiency(conversion):
+             tea.V405.reaction.X = conversion
 
         @param(name='DDGS price', element=tea.DDGS, kind='isolated',
                units='USD/ton', baseline=tea.DDGS.price * kg_per_ton)
@@ -477,6 +526,18 @@ def create_states_model(biorefinery):
                         distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
             feedstock.price = price   
+            
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+               description="annual feestock processing capacity")
+        def set_plant_size(flow_rate):
+            dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            
+        @model.parameter(element=tea.R301, kind='coupled', units='%',
+                          distribution=shape.Triangle(0.85,0.9,0.95))
+        def set_ferm_efficiency(eff):
+             tea.R301.efficiency = eff
 
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -538,6 +599,7 @@ def create_IPs_model(biorefinery):
     tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
+        model.specification = lambda: None # No need to rerun mass and energy balance (nothing should change for corn)
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
@@ -718,10 +780,10 @@ def create_IPs_model(biorefinery):
     #     tea.property_tax = State_property_tax_rate
 
     # State motor fuel tax
-    # SMFTR_dist = shape.Triangle(0, 0, 0.1)
-    # @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
-    # def set_motor_fuel_tax(fuel_tax_rate):
-    #     tea.fuel_tax = fuel_tax_rate
+    SMFTR_dist = shape.Triangle(0, 0, 0.05)
+    @model.parameter(element='TEA', kind='isolated', units='USD/gal', distribution=SMFTR_dist)
+    def set_motor_fuel_tax(fuel_tax_rate):
+        tea.fuel_tax = fuel_tax_rate
 
     # State sales tax
     # SSTR_dist = shape.Triangle(0, 0.05875, 0.0725)
@@ -749,6 +811,18 @@ def create_IPs_model(biorefinery):
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
             feedstock.price = price        
+        
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+               description="annual feestock processing capacity")
+        def set_plant_size(flow_rate):
+            dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            
+        @model.parameter(element=tea.V405, kind='coupled', units='%',
+                         distribution=shape.Triangle(0.9,0.95,1))
+        def set_ferm_efficiency(conversion):
+             tea.V405.reaction.X = conversion
 
         @param(name='DDGS price', element=tea.DDGS, kind='isolated',
                units='USD/ton', baseline=tea.DDGS.price * kg_per_ton)
@@ -875,6 +949,18 @@ def create_IPs_model(biorefinery):
                         distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
             feedstock.price = price   
+            
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+               description="annual feestock processing capacity")
+        def set_plant_size(flow_rate):
+            dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            
+        @model.parameter(element=tea.R301, kind='coupled', units='%',
+                          distribution=shape.Triangle(0.9,0.95,1))
+        def set_ferm_efficiency(eff):
+             tea.R301.efficiency = eff
 
         @param(name='Boiler efficiency', element=tea.BT, kind='coupled', units='%',
                description='efficiency of burning fuel to produce steam',
@@ -918,7 +1004,9 @@ def evaluate_IP(biorefinery, N=3000):
     samples = model.sample(N, rule)
     model.load_samples(samples)
     model.evaluate(**evaluate_args('IP'))
+    sp_rho_table, sp_p_table = model.spearman_r()
     model.table.to_excel(get_file_name('IP.xlsx'))
+    sp_rho_table.to_excel(get_file_name('correlation.xlsx'))
     return model.table
 
 #Evaluate across property tax
@@ -1047,7 +1135,7 @@ def evaluate_fuelT(biorefinery, N=1000):
                                             np.linspace(
                                             set_motor_fuel_tax.distribution.lower.min(),
                                             set_motor_fuel_tax.distribution.upper.max(),
-                                            20,),
+                                            10,),
                                             xlfile=get_file_name('Eval_across_fuel_tax.xlsx'),
                                             notify=True,
                                             f_evaluate=f_evaluate,
@@ -1187,6 +1275,20 @@ def evaluate_elecP(biorefinery, N=1000):
                                             notify=True,
                                             f_evaluate=f_evaluate,
                                             )
+
+# Get Spearman's correlation coefficients
+def evaluate_correlation(biorefinery,N=10000):
+    model = create_IPs_model(biorefinery)
+    np.random.seed(1688)
+    rule = 'L' # For Latin-Hypercube sampling
+    samples = model.sample(N, rule)
+    model.load_samples(samples)
+    model.evaluate(**evaluate_args('correlation'))
+    sp_rho_table, sp_p_table = model.spearman_r()
+    sp_rho_table.to_excel(get_file_name('correlation.xlsx'))
+    return sp_rho_table
+
+# sp_rho_table, sp_p_table = model.spearman_r()
 # fig, ax = bst.plots.plot_spearman_1d(sp_rho_table['Biorefinery']['Baseline MFSP [USD/gal]'])
 # labels = [item.get_text() for item in ax.get_yticklabels()]
 # ax.set_yticklabels(labels)
