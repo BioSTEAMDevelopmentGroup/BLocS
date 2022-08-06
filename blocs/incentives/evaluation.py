@@ -197,7 +197,7 @@ def create_states_model(biorefinery):
     def MFSP_getter(state):
         def MFSP():
             names = (
-                 'state_income_tax', 
+                 'state_income_tax',
                  'property_tax',
                  'fuel_tax',
                  'sales_tax',
@@ -244,7 +244,7 @@ def create_states_model(biorefinery):
     def MFSP_w_inc_getter(state):
         def MFSP():
             names = (
-                 'state_income_tax', 
+                 'state_income_tax',
                  'property_tax',
                  'fuel_tax',
                  'sales_tax',
@@ -387,15 +387,15 @@ def create_states_model(biorefinery):
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
-            feedstock.price = price  
-            
+            feedstock.price = price
+
         @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
                baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
             feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
-            
+
         @model.parameter(element=tea.V405, kind='coupled', units='%',
                          distribution=shape.Triangle(0.9,0.95,1))
         def set_ferm_efficiency(conversion):
@@ -514,7 +514,7 @@ def create_states_model(biorefinery):
                bounds=(0, 100))
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
-            
+
         @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
                baseline=bst.PowerUtility.price)
         def set_electricity_price(price):
@@ -525,15 +525,15 @@ def create_states_model(biorefinery):
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
-            feedstock.price = price   
-            
+            feedstock.price = price
+
         @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
                baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
             feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
-            
+
         @model.parameter(element=tea.R301, kind='coupled', units='%',
                           distribution=shape.Triangle(0.85,0.9,0.95))
         def set_ferm_efficiency(eff):
@@ -810,15 +810,15 @@ def create_IPs_model(biorefinery):
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
-            feedstock.price = price        
-        
+            feedstock.price = price
+
         @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
                baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
             feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
-            
+
         @model.parameter(element=tea.V405, kind='coupled', units='%',
                          distribution=shape.Triangle(0.9,0.95,1))
         def set_ferm_efficiency(conversion):
@@ -937,26 +937,26 @@ def create_IPs_model(biorefinery):
                bounds=(0, 100))
         def set_turbogenerator_efficiency(X):
             tea.BT.turbogenerator_efficiency = X / 100.
-            
+
         @param(name='Electricity price', element='TEA', kind='isolated', units='USD/kWh',
                 baseline=bst.PowerUtility.price)
         def set_electricity_price(price):
             bst.PowerUtility.price = price
 
     elif biorefinery == 'sugarcane':
-            
+
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.0332, 0.0332, 1.2*0.0332))
         def set_sugarcane_price(price):
-            feedstock.price = price   
-            
+            feedstock.price = price
+
         @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
                baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
             feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
-            
+
         @model.parameter(element=tea.R301, kind='coupled', units='%',
                           distribution=shape.Triangle(0.9,0.95,1))
         def set_ferm_efficiency(eff):
