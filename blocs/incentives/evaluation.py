@@ -173,7 +173,6 @@ def create_states_model(biorefinery):
     tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
-        model.specification = lambda: None # No need to rerun mass and energy balance (nothing should change for corn)
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
@@ -389,15 +388,15 @@ def create_states_model(biorefinery):
         def set_corn_price(price):
             feedstock.price = price
 
-        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
-               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US MT/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / 1000,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
-            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * 1000
 
         @model.parameter(element=tea.V405, kind='coupled', units='%',
-                         distribution=shape.Triangle(0.9,0.95,1))
+                         distribution=shape.Triangle(0.85, 0.90, 0.95))
         def set_ferm_efficiency(conversion):
              tea.V405.reaction.X = conversion
 
@@ -599,7 +598,6 @@ def create_IPs_model(biorefinery):
     tea.F_investment = 1.02
     if biorefinery == 'corn':
         tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic
-        model.specification = lambda: None # No need to rerun mass and energy balance (nothing should change for corn)
     else:
         tea.jobs_50 = 50 # assumption made by Humbird (2011) and Huang (2016)
 
@@ -806,21 +804,25 @@ def create_IPs_model(biorefinery):
     #     tea.F_investment = LCCF
 
     if biorefinery == 'corn':
-
+        tea.V405.V = None # Override old batch volume setting (which allows number of batches to change)
+        tea.V405.N = 7 # Force number of batch reactors to be 7
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
         def set_corn_price(price):
             feedstock.price = price
 
-        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US ton/yr',
-               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / kg_per_ton,
+        @param(name='Plant capacity', element=feedstock, kind='coupled', units='dry US MT/yr',
+               baseline=(feedstock.F_mass - feedstock.imass['H2O']) * tea.operating_hours / 1000.,
                description="annual feestock processing capacity")
         def set_plant_size(flow_rate):
             dry_content = 1 - feedstock.imass['H2O'] / feedstock.F_mass
-            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * kg_per_ton
+            feedstock.F_mass = flow_rate / tea.operating_hours / dry_content * 1000.
 
+        # Although baseline fermentation efficiency is 95%, this is actually 
+        # an optimistic assumption. Going up to 100% is imposible because of 
+        # cell mass production and other carbon losses.
         @model.parameter(element=tea.V405, kind='coupled', units='%',
-                         distribution=shape.Triangle(0.9,0.95,1))
+                         distribution=shape.Triangle(0.9, 0.925, 0.95))
         def set_ferm_efficiency(conversion):
              tea.V405.reaction.X = conversion
 
