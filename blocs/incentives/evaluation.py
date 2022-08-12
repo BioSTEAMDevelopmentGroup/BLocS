@@ -804,7 +804,7 @@ def create_IPs_model(biorefinery):
     #     tea.F_investment = LCCF
 
     if biorefinery == 'corn':
-        tea.V405.V = None # Override old batch volume setting (which allows number of batches to change)
+        tea.V405._V = None # Override old batch volume setting (which allows number of batches to change)
         tea.V405.N = 7 # Force number of batch reactors to be 7
         @model.parameter(element=feedstock, kind='isolated', units='USD/ton',
                         distribution=shape.Triangle(0.8*0.15, 0.15, 1.2*0.15))
