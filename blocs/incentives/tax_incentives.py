@@ -45,7 +45,6 @@ def assess_incentive(start, duration, plant_years, incentive, amount, assessed_t
         assessed_tax,
         incentive
     )
-    assessed_tax -= incentive
     return incentive
 
 def assess_incentive_arr(start, duration, plant_years, incentive, amount, assessed_tax, ub=None):
@@ -58,7 +57,6 @@ def assess_incentive_arr(start, duration, plant_years, incentive, amount, assess
         assessed_tax,
         incentive
     )
-    assessed_tax -= incentive
     return incentive
     
 def determine_exemption_amount(incentive_number,
