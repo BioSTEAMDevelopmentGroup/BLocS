@@ -98,7 +98,7 @@ def determine_exemption_amount(incentive_number,
     """
     lcs = locals()
     exemption = np.zeros((plant_years,))
-    if incentive_number == 1:
+    if incentive_number == 1: #Referred to as Incentive E1 (for "Exemption 1") in manuscript
         params = ('value_added', 'property_taxable_value', 'property_tax_rate')
         check_any_missing_parameter(lcs, params)
         exemption_amount = value_added # Value added to property, assume FCI
@@ -106,25 +106,25 @@ def determine_exemption_amount(incentive_number,
         exemption[start: start + duration] = exemption_amount
         exemption = assess_incentive(start, duration, plant_years, exemption, exemption_amount, property_taxable_value)
         exemption *= property_tax_rate
-    elif incentive_number == 2:
+    elif incentive_number == 2: #Referred to as Incentive E2 in manuscript
         params = ('property_taxable_value', 'property_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 10
         exemption = assess_incentive_arr(start, duration, plant_years, exemption, property_taxable_value, property_taxable_value)       
         exemption *= property_tax_rate # Exempt amount is the entire amount of state property tax assessed
-    elif incentive_number == 3:
+    elif incentive_number == 3: #Referred to as Incentive E3 in manuscript
         params = ('ethanol_eq', 'property_taxable_value', 'property_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 10
         exemption = assess_incentive_arr(start, duration, plant_years, exemption, ethanol_eq, property_taxable_value)
         exemption *= property_tax_rate        
-    elif incentive_number == 4:
+    elif incentive_number == 4: #Referred to as Incentive E4 in manuscript
         params = ('fuel_tax_rate', 'property_taxable_value', 'property_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = plant_years
         exemption = assess_incentive_arr(start, duration, plant_years, exemption, fuel_taxable_value, fuel_taxable_value)   
         exemption *= fuel_tax_rate # Exempt amount is the entire amount of state fuel tax assessed       
-    elif incentive_number == 5:
+    elif incentive_number == 5: #Referred to as Incentive E5 in manuscript
         params = ('fuel_tax_rate', 'property_taxable_value', 'property_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = plant_years
@@ -161,7 +161,7 @@ def determine_deduction_amount(incentive_number,
     """
     lcs = locals()
     deduction = np.zeros((plant_years,))
-    if incentive_number == 6:
+    if incentive_number == 6: #Referred to as Incentive D1 (for "Deduction 1") in manuscript
         params = ('NM_value', 'sales_taxable_value', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = plant_years
@@ -214,41 +214,41 @@ def determine_credit_amount(incentive_number,
     """
     lcs = locals()
     credit = np.zeros((plant_years,))
-    if incentive_number == 7:
+    if incentive_number == 7: #Referred to as Incentive C1 (for "Credit 1") in manuscript
         params = ('TCI', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         # Actually 'qualified capital investment', assume TCI; DON'T MULTIPLY BY TAX RATE HERE
         duration = 10
         credit = assess_incentive(start, duration, plant_years, credit, 0.015 * TCI, state_income_tax_assessed)
-    elif incentive_number == 8:
+    elif incentive_number == 8: #Referred to as Incentive C2 in manuscript
         params = ('TCI', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         # actually 'qualified investment', assume TCI; DON'T MULTIPLY BY TAX RATE HERE
         duration = 22
         credit = assess_incentive(start, duration, plant_years, credit, 0.03 * TCI, state_income_tax_assessed, 7.5e5)
-    elif incentive_number == 9:
+    elif incentive_number == 9: #Referred to as Incentive C3 in manuscript
         params = ('ethanol', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         # Fuel content of ethanol is 76100 btu/gal; DON'T MULTIPLY BY TAX RATE HERE
         duration = 5
         credit = assess_incentive_arr(start, duration, plant_years, credit, 76100 * 0.2 / 76000 * ethanol, state_income_tax_assessed, 3e6)
-    elif incentive_number == 10:
+    elif incentive_number == 10: #Referred to as Incentive C4 in manuscript
         params = ('TCI', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         total_credit = 0.05 * TCI # actually just 'a percentage of qualifying investment', assume 5% of TCI, no max specified but may be inaccurate; DON'T MULTIPLY BY TAX RATE HERE
         duration = 5
         credit = assess_incentive(start, duration, plant_years, credit, (0.05 * TCI)/duration, state_income_tax_assessed)
-    elif incentive_number == 11:
+    elif incentive_number == 11: #Referred to as Incentive C5 in manuscript
         params = ('state_income_tax_assessed',)
         check_any_missing_parameter(lcs, params)
         duration = 15      
         credit = assess_incentive_arr(start, duration, plant_years, credit, state_income_tax_assessed, state_income_tax_assessed)# Credit amount is the entire amount of state income tax assessed
-    elif incentive_number == 12:
+    elif incentive_number == 12: #Referred to as Incentive C6 in manuscript
         params = ('ethanol', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         duration = plant_years
         credit = assess_incentive_arr(start, duration, plant_years, credit, ethanol, state_income_tax_assessed,5e6)
-    elif incentive_number == 13:
+    elif incentive_number == 13: #Referred to as Incentive C7 in manuscript
         params = ('TCI', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         if TCI < 1e5:
@@ -262,26 +262,26 @@ def determine_credit_amount(incentive_number,
         # There are other provisions to the incentive but they are more difficult to model so I will assume the maximum value is achieved via these provisions; DON'T MULTIPLY BY TAX RATE HERE
         duration = 2 # Estimated, incentive description is not clear
         credit = assess_incentive(start, duration, plant_years, credit, credit_amount, state_income_tax_assessed, 1e6)
-    elif incentive_number == 14:
+    elif incentive_number == 14: #Referred to as Incentive C8 in manuscript
         params = ('TCI', 'property_tax_assessed')
         check_any_missing_parameter(lcs, params)
         total_credit = 0.25 * TCI # Actually cost of constructing and equipping facility; DON'T MULTIPLY BY TAX RATE HERE
         duration = 7
         credit_amount = total_credit/duration #credit must be taken in equal installments over duration
         credit = assess_incentive(start, duration, plant_years, credit, credit_amount, property_tax_assessed)
-    elif incentive_number == 15:
+    elif incentive_number == 15: #Referred to as Incentive C9 in manuscript
         params = ('elec_eq', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         duration = 15
         credit_amount = 0.25 * elec_eq[start: start + duration] # DON'T MULTIPLY BY TAX RATE HERE
         credit = assess_incentive(start, duration, plant_years, credit, credit_amount, state_income_tax_assessed, 6.5e5)
-    elif incentive_number == 16:
+    elif incentive_number == 16: #Referred to as Incentive C10 in manuscript
         params = ('state_income_tax_assessed',)
         check_any_missing_parameter(lcs, params)
         duration = 20
         credit_amount = 0.75 * state_income_tax_assessed[start: start + duration]# Credit amount depends on amount of state income tax assessed; DON'T MULTIPLY BY TAX RATE HERE
         credit = assess_incentive(start, duration, plant_years, credit, credit_amount, state_income_tax_assessed)
-    elif incentive_number == 17:
+    elif incentive_number == 17: #Referred to as Incentive C11 in manuscript
         params = ('jobs_50', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         credit_amount = 500 * jobs_50 # Number of jobs paying 50k+/year; DON'T MULTIPLY BY TAX RATE HERE
@@ -325,19 +325,19 @@ def determine_refund_amount(incentive_number,
     """
     lcs = locals()
     refund = np.zeros((plant_years,))
-    if incentive_number == 18:
+    if incentive_number == 18: #Referred to as Incentive R1 (for "Refund 1") in manuscript
         params = ('IA_value', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 1
         refund_amount = sales_tax_rate * IA_value # Fees paid to (sub)contractors + cost of racks, shelving, conveyors
         refund = assess_incentive_arr(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
-    elif incentive_number == 19:
+    elif incentive_number == 19: #Referred to as Incentive R2 in manuscript
         params = ('building_mats', 'sales_tax_rate')
         check_any_missing_parameter(lcs, params)
         duration = 1
         refund_amount = sales_tax_rate  * building_mats # Cost of building and construction materials
         refund = assess_incentive_arr(start, duration, plant_years, refund, refund_amount, sales_tax_assessed)
-    elif incentive_number == 20:
+    elif incentive_number == 20: #Referred to as Incentive R3 in manuscript
         params = ('ethanol', 'state_income_tax_assessed')
         check_any_missing_parameter(lcs, params)
         duration = plant_years

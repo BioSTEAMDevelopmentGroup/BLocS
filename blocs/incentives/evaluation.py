@@ -627,6 +627,12 @@ def create_IPs_model(biorefinery):
 
     @model.metric(name='Total capital investment', units='USD')
     def get_TCI():
+        try:
+            assert tea.TCI < 100e6
+        except:
+            for i in tea.system.units:
+                print(i, i.purchase_cost)
+            breakpoint()
         return tea.TCI
 
     @model.metric(name='Fixed capital investment', units='USD')
@@ -766,10 +772,10 @@ def create_IPs_model(biorefinery):
 
     # TODO Only activate these first 6 parameters when using evaluate_across_X_parameter functions
     # State income tax
-    # SITR_dist = shape.Triangle(0, 0.065, 0.12)
-    # @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
-    # def set_state_income_tax(State_income_tax_rate):
-    #     tea.state_income_tax = State_income_tax_rate
+    SITR_dist = shape.Triangle(0, 0.065, 0.12)
+    @model.parameter(element='TEA', kind='isolated', units='%', distribution=SITR_dist)
+    def set_state_income_tax(State_income_tax_rate):
+        tea.state_income_tax = State_income_tax_rate
 
     # Property tax
     # SPTR_dist = shape.Triangle(0.0, 0.0136, 0.04)
@@ -1006,6 +1012,7 @@ def evaluate_IP(biorefinery, N=3000):
     samples = model.sample(N, rule)
     model.load_samples(samples)
     model.evaluate(**evaluate_args('IP'))
+    
     sp_rho_table, sp_p_table = model.spearman_r()
     model.table.to_excel(get_file_name('IP.xlsx'))
     sp_rho_table.to_excel(get_file_name('correlation.xlsx'))
