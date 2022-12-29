@@ -26,6 +26,7 @@ __all__ = (
     'create_incentivized_tea',
     'ConventionalIncentivesTEA',
     'CellulosicIncentivesTEA',
+    'CellulosicBLocSTEA',
 )
 
 def create_corn_tea():
@@ -420,7 +421,7 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
                  location=None,
                  **kwargs):
         super().__init__(*args, **kwargs)
-        self.property_tax = property_tax
+        self._property_tax = property_tax
         self._state_income_tax = state_income_tax
         self.federal_income_tax = federal_income_tax
         self.incentive_numbers = incentive_numbers
@@ -428,19 +429,19 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         self.biodiesel_product = biodiesel_product
         self.ethanol_group = ethanol_group
         self.biodiesel_group = biodiesel_group
-        self.sales_tax = sales_tax
-        self.fuel_tax = fuel_tax
+        self._sales_tax = sales_tax
+        self._fuel_tax = fuel_tax
         self.feedstock = feedstock
         self.utility_tax = utility_tax
-        self.F_investment = F_investment
+        self._F_investment = F_investment
         self.BT = BT
         self.jobs_50 = 50
+        self.location = location
         self.deduct_federal_income_tax_to_state_taxable_earnings = False
         self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
         self.state_tax_by_gross_receipts = False
-        self.labor_cost *= (26.03/19.55) # BLS labor indices for years 2020/2007
-        
-# TODO
+        self.labor_cost *= (26.03/19.55) # BLS labor cost indices for years 2020/2007
+
         @property
         def state_income_tax(self):
             if self._state_income_tax: return self._state_income_tax
@@ -449,15 +450,45 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         @state_income_tax.setter
         def state_income_tax(self, tax):
             self._state_income_tax = tax
-
-    def depreciation_incentive_24(self, switch):
-        if switch:
-            self._depreciation_array = inc24 = self.depreciation_schedules[self.depreciation].copy()
-            inc24[0] += 0.5
-            inc24[1:] = inc24[1:] / (inc24[1:].sum() / (1 - inc24[0]))
-            np.testing.assert_allclose(inc24.sum(), 1.)
-        else:
-            self._depreciation_array = self.depreciation_schedules[self.depreciation]
+            
+        @property
+        def property_tax(self):
+            if self._property_tax: return self._property_tax
+            if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
+        @property_tax.setter
+        def property_tax(self, tax):
+            self._property_tax = tax
+            
+        @property
+        def state_fuel_producer_tax(self):
+            if self._fuel_tax: return self._fuel_tax
+            if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
+            return 0
+        @state_fuel_producer_tax.setter
+        def state_fuel_producer_tax(self, tax):
+            self._fuel_tax = tax
+            
+        @property
+        def sales_tax(self):
+            if self._sales_tax: return self._sales_tax
+            if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
+            return 0
+        @sales_tax.setter
+        def sales_tax(self, tax):
+            self._sales_tax = 0
+            
+        @property
+        def LCCF(self): #LCCF stands for location capital cost factor
+            if self._F_investment: return self._F_investment
+            if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
+            return 1
+        @LCCF.setter
+        def LCCF(self, number):
+            self._F_investment = number
+            
+        # TODO figure out electricity price property
+        # @property
+        # def electricity_price(self):
 
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
@@ -483,7 +514,7 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
             fuel_value += ethanol_product.cost * operating_hours
             ethanol_eq = 1e6 * ethanol_group.get_installed_cost()
         else:
-            ethanol = ethanol_eq = ethanol_sales = 0.
+            ethanol = ethanol_eq = 0.
         if biodiesel_product:
             fuel_value += biodiesel_product.cost * operating_hours
             if lang_factor:
