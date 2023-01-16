@@ -27,6 +27,7 @@ __all__ = (
     'ConventionalIncentivesTEA',
     'CellulosicIncentivesTEA',
     'CellulosicBLocSTEA',
+    'ConventionalBLocSTEA',
 )
 
 def create_corn_tea():
@@ -424,7 +425,7 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         self._property_tax = property_tax
         self._state_income_tax = state_income_tax
         self.federal_income_tax = federal_income_tax
-        self.incentive_numbers = incentive_numbers
+        self._incentive_numbers = incentive_numbers
         self.ethanol_product = ethanol_product
         self.biodiesel_product = biodiesel_product
         self.ethanol_group = ethanol_group
@@ -486,9 +487,35 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         def LCCF(self, number):
             self._F_investment = number
             
-        # TODO figure out electricity price property
-        # @property
-        # def electricity_price(self):
+        # TODO make sure electricity price property is set up correctly
+        @property
+        def electricity_price(self):
+            if self.BT: return bst.PowerUtility.price
+            if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
+            return 0.0681
+        @electricity_price.setter
+        def electricity_price(self, number):
+            bst.PowerUtility.price = number
+            
+        def get_state_incentives(state):
+                avail_incentives = state_data.loc[state]['Incentives Available']
+                avail_incentives = None if pd.isna(avail_incentives) else avail_incentives # no incentives
+                if avail_incentives is not None:
+                    try: # multiple incentives
+                        avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
+                    except TypeError: # only one incentive
+                        avail_incentives = [int(avail_incentives)]
+                return avail_incentives
+            
+        # TODO make sure incentive numbers works properly
+        @property
+        def incentive_numbers(self):
+            if self._incentive_numbers: return self._incentive_numbers
+            if self.location: return get_state_incentives(self.location)
+            return None
+        @incentive_numbers.setter
+        def incentive_numbers(self, number):
+            self._incentive_numbers = number # might need to adjust to accept multiple incentives
 
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
@@ -627,3 +654,131 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         index = maximum_incentives > tax
         maximum_incentives[index] = tax[index]
         incentives[:] = maximum_incentives
+        
+class ConventionalBLocSTEA(sc.ConventionalEthanolTEA):
+
+    def __init__(self, *args, incentive_numbers=(),
+                 property_tax=None,
+                 state_income_tax=None,
+                 federal_income_tax=None,
+                 ethanol_product=None,
+                 biodiesel_product=None,
+                 ethanol_group=None,
+                 biodiesel_group=None,
+                 sales_tax=None,
+                 fuel_tax=None,
+                 utility_tax=None,
+                 BT=None,
+                 feedstock=None,
+                 F_investment=1.,
+                 location=None,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self._property_tax = property_tax
+        self._state_income_tax = state_income_tax
+        self.federal_income_tax = federal_income_tax
+        self._incentive_numbers = incentive_numbers
+        self.ethanol_product = ethanol_product
+        self.biodiesel_product = biodiesel_product
+        self.ethanol_group = ethanol_group
+        self.biodiesel_group = biodiesel_group
+        self._sales_tax = sales_tax
+        self._fuel_tax = fuel_tax
+        self.feedstock = feedstock
+        self.utility_tax = utility_tax
+        self._F_investment = F_investment
+        self.BT = BT
+        self.TDC_over_FCI = 0.625
+        self.jobs_50 = 50
+        self.location = location
+        self.deduct_federal_income_tax_to_state_taxable_earnings = False # TODO add True statement for appropriate locations
+        self.deduct_half_federal_income_tax_to_state_taxable_earnings = False
+        self.state_tax_by_gross_receipts = False
+        self.labor_cost *= (26.03/21.40) # BLS labor indices for years 2020/2013
+
+        @property
+        def state_income_tax(self):
+            if self._state_income_tax: return self._state_income_tax
+            if self.location: return state_data.loc[self.location]['Income Tax Rate (decimal)']
+            return 0
+        @state_income_tax.setter
+        def state_income_tax(self, tax):
+            self._state_income_tax = tax
+            
+        @property
+        def property_tax(self):
+            if self._property_tax: return self._property_tax
+            if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
+        @property_tax.setter
+        def property_tax(self, tax):
+            self._property_tax = tax
+            
+        @property
+        def state_fuel_producer_tax(self):
+            if self._fuel_tax: return self._fuel_tax
+            if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
+            return 0
+        @state_fuel_producer_tax.setter
+        def state_fuel_producer_tax(self, tax):
+            self._fuel_tax = tax
+            
+        @property
+        def sales_tax(self):
+            if self._sales_tax: return self._sales_tax
+            if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
+            return 0
+        @sales_tax.setter
+        def sales_tax(self, tax):
+            self._sales_tax = 0
+            
+        @property
+        def LCCF(self): #LCCF stands for location capital cost factor
+            if self._F_investment: return self._F_investment
+            if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
+            return 1
+        @LCCF.setter
+        def LCCF(self, number):
+            self._F_investment = number
+            
+        # TODO make sure electricity price property is set up correctly
+        @property
+        def electricity_price(self):
+            if self.BT: return bst.PowerUtility.price
+            if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
+            return 0.0681
+        @electricity_price.setter
+        def electricity_price(self, number):
+            bst.PowerUtility.price = number
+            
+        def get_state_incentives(state):
+                avail_incentives = state_data.loc[state]['Incentives Available']
+                avail_incentives = None if pd.isna(avail_incentives) else avail_incentives # no incentives
+                if avail_incentives is not None:
+                    try: # multiple incentives
+                        avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
+                    except TypeError: # only one incentive
+                        avail_incentives = [int(avail_incentives)]
+                return avail_incentives
+            
+        # TODO make sure incentive numbers works properly
+        @property
+        def incentive_numbers(self):
+            if self._incentive_numbers: return self._incentive_numbers
+            if self.location: return get_state_incentives(self.location)
+            return None
+        @incentive_numbers.setter
+        def incentive_numbers(self, number):
+            self._incentive_numbers = number # might need to adjust to accept multiple incentives
+
+    _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
+
+    def _fill_depreciation_array(self, depreciation, start, years, FCI):
+        TDC = self.TDC_over_FCI * FCI
+        return super()._fill_depreciation_array( depreciation, start, years, TDC)
+
+    def _DPI(self, installed_equipment_cost):
+        return self.F_investment * installed_equipment_cost
+
+    def _FOC(self, FCI):
+        return (FCI*(self.property_insurance + self.maintenance + self.administration)
+                + self.labor_cost*(1+self.fringe_benefits+self.supplies))
