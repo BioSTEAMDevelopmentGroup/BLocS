@@ -515,7 +515,7 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
             return None
         @incentive_numbers.setter
         def incentive_numbers(self, number):
-            self._incentive_numbers = number # might need to adjust to accept multiple incentives
+            self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
 
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
@@ -768,7 +768,7 @@ class ConventionalBLocSTEA(sc.ConventionalEthanolTEA):
             return None
         @incentive_numbers.setter
         def incentive_numbers(self, number):
-            self._incentive_numbers = number # might need to adjust to accept multiple incentives
+            self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
 
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
 
