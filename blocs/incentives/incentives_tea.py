@@ -18,7 +18,7 @@ cs.load()
 folder = os.path.dirname(__file__)
 st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
 state_data = pd.read_excel(st_data_file, index_col=[0])
-
+#%%
 __all__ = (
     'create_corn_tea',
     'create_sugarcane_tea',
@@ -443,79 +443,82 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         self.state_tax_by_gross_receipts = False
         self.labor_cost *= (26.03/19.55) # BLS labor cost indices for years 2020/2007
 
-        @property
-        def state_income_tax(self):
-            if self._state_income_tax: return self._state_income_tax
-            if self.location: return state_data.loc[self.location]['Income Tax Rate (decimal)']
-            return 0
-        @state_income_tax.setter
-        def state_income_tax(self, tax):
-            self._state_income_tax = tax
-            
-        @property
-        def property_tax(self):
-            if self._property_tax: return self._property_tax
-            if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
-        @property_tax.setter
-        def property_tax(self, tax):
-            self._property_tax = tax
-            
-        @property
-        def state_fuel_producer_tax(self):
-            if self._fuel_tax: return self._fuel_tax
-            if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
-            return 0
-        @state_fuel_producer_tax.setter
-        def state_fuel_producer_tax(self, tax):
-            self._fuel_tax = tax
-            
-        @property
-        def sales_tax(self):
-            if self._sales_tax: return self._sales_tax
-            if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
-            return 0
-        @sales_tax.setter
-        def sales_tax(self, tax):
-            self._sales_tax = 0
-            
-        @property
-        def LCCF(self): #LCCF stands for location capital cost factor
-            if self._F_investment: return self._F_investment
-            if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
-            return 1
-        @LCCF.setter
-        def LCCF(self, number):
-            self._F_investment = number
-            
-        # TODO make sure electricity price property is set up correctly
-        @property
-        def electricity_price(self):
-            if self.BT: return bst.PowerUtility.price
-            if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
-            return 0.0681
-        @electricity_price.setter
-        def electricity_price(self, number):
-            bst.PowerUtility.price = number
-            
-        def get_state_incentives(state):
-                avail_incentives = state_data.loc[state]['Incentives Available']
-                avail_incentives = None if pd.isna(avail_incentives) else avail_incentives # no incentives
-                if avail_incentives is not None:
-                    try: # multiple incentives
-                        avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
-                    except TypeError: # only one incentive
-                        avail_incentives = [int(avail_incentives)]
-                return avail_incentives
-            
-        # TODO make sure incentive numbers works properly
-        @property
-        def incentive_numbers(self):
-            if self._incentive_numbers: return self._incentive_numbers
-            if self.location: return get_state_incentives(self.location)
-            return None
-        @incentive_numbers.setter
-        def incentive_numbers(self, number):
-            self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
+    @property
+    def state_income_tax(self):
+        if self._state_income_tax: return self._state_income_tax
+        if self.location: return state_data.loc[self.location]['Income Tax Rate (decimal)']
+        return 0
+    @state_income_tax.setter
+    def state_income_tax(self, tax):
+        self._state_income_tax = tax
+        
+    @property
+    def property_tax(self):
+        if self._property_tax: return self._property_tax
+        if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
+    @property_tax.setter
+    def property_tax(self, tax):
+        self._property_tax = tax
+        
+    @property
+    def state_fuel_producer_tax(self):
+        if self._fuel_tax: return self._fuel_tax
+        if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
+        return 0
+    @state_fuel_producer_tax.setter
+    def state_fuel_producer_tax(self, tax):
+        self._fuel_tax = tax
+        
+    @property
+    def sales_tax(self):
+        if self._sales_tax: return self._sales_tax
+        if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
+        return 0
+    @sales_tax.setter
+    def sales_tax(self, tax):
+        self._sales_tax = 0
+        
+    @property
+    def LCCF(self): #LCCF stands for location capital cost factor
+        if self._F_investment: return self._F_investment
+        if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
+        return 1
+    @LCCF.setter
+    def LCCF(self, number):
+        self._F_investment = number
+        
+    # TODO make sure electricity price property is set up correctly
+    @property
+    def electricity_price(self):
+        if self.BT: return bst.PowerUtility.price
+        if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
+        return 0.0681
+    @electricity_price.setter
+    def electricity_price(self, number):
+        bst.PowerUtility.price = number
+        
+    def get_state_incentives(self):
+        state = self.location
+        if not state: return []
+        avail_incentives = state_data.loc[state]['Incentives Available']
+        avail_incentives = [] if pd.isna(avail_incentives) else avail_incentives # no incentives
+        if avail_incentives is not None:
+            try: # multiple incentives
+                avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
+            except TypeError: # only one incentive
+                avail_incentives = [int(avail_incentives)]
+        return avail_incentives
+        
+    # TODO make sure incentive numbers works properly
+    @property
+    def incentive_numbers(self):
+        if self._incentive_numbers: return self._incentive_numbers
+        if self.location: return self.get_state_incentives()
+        return []
+    @incentive_numbers.setter
+    def incentive_numbers(self, number):
+        number = [] if not number else number
+        self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
 
     def _FCI(self, TDC):
         self._FCI_cached = FCI = self.F_investment * super()._FCI(TDC)
@@ -657,8 +660,8 @@ class CellulosicBLocSTEA(cs.CellulosicEthanolTEA):
         
 class ConventionalBLocSTEA(sc.ConventionalEthanolTEA):
 
-    def __init__(self, *args, incentive_numbers=(),
-                 property_tax=None,
+    def __init__(self, *args, incentive_numbers=[],
+                 # property_tax=None,
                  state_income_tax=None,
                  federal_income_tax=None,
                  ethanol_product=None,
@@ -674,7 +677,7 @@ class ConventionalBLocSTEA(sc.ConventionalEthanolTEA):
                  location=None,
                  **kwargs):
         super().__init__(*args, **kwargs)
-        self._property_tax = property_tax
+        # self._property_tax = property_tax
         self._state_income_tax = state_income_tax
         self.federal_income_tax = federal_income_tax
         self._incentive_numbers = incentive_numbers
@@ -696,79 +699,82 @@ class ConventionalBLocSTEA(sc.ConventionalEthanolTEA):
         self.state_tax_by_gross_receipts = False
         self.labor_cost *= (26.03/21.40) # BLS labor indices for years 2020/2013
 
-        @property
-        def state_income_tax(self):
-            if self._state_income_tax: return self._state_income_tax
-            if self.location: return state_data.loc[self.location]['Income Tax Rate (decimal)']
-            return 0
-        @state_income_tax.setter
-        def state_income_tax(self, tax):
-            self._state_income_tax = tax
-            
-        @property
-        def property_tax(self):
-            if self._property_tax: return self._property_tax
-            if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
-        @property_tax.setter
-        def property_tax(self, tax):
-            self._property_tax = tax
-            
-        @property
-        def state_fuel_producer_tax(self):
-            if self._fuel_tax: return self._fuel_tax
-            if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
-            return 0
-        @state_fuel_producer_tax.setter
-        def state_fuel_producer_tax(self, tax):
-            self._fuel_tax = tax
-            
-        @property
-        def sales_tax(self):
-            if self._sales_tax: return self._sales_tax
-            if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
-            return 0
-        @sales_tax.setter
-        def sales_tax(self, tax):
-            self._sales_tax = 0
-            
-        @property
-        def LCCF(self): #LCCF stands for location capital cost factor
-            if self._F_investment: return self._F_investment
-            if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
-            return 1
-        @LCCF.setter
-        def LCCF(self, number):
-            self._F_investment = number
-            
-        # TODO make sure electricity price property is set up correctly
-        @property
-        def electricity_price(self):
-            if self.BT: return bst.PowerUtility.price
-            if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
-            return 0.0681
-        @electricity_price.setter
-        def electricity_price(self, number):
-            bst.PowerUtility.price = number
-            
-        def get_state_incentives(state):
-                avail_incentives = state_data.loc[state]['Incentives Available']
-                avail_incentives = None if pd.isna(avail_incentives) else avail_incentives # no incentives
-                if avail_incentives is not None:
-                    try: # multiple incentives
-                        avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
-                    except TypeError: # only one incentive
-                        avail_incentives = [int(avail_incentives)]
-                return avail_incentives
-            
-        # TODO make sure incentive numbers works properly
-        @property
-        def incentive_numbers(self):
-            if self._incentive_numbers: return self._incentive_numbers
-            if self.location: return get_state_incentives(self.location)
-            return None
-        @incentive_numbers.setter
-        def incentive_numbers(self, number):
-            self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
+    @property
+    def state_income_tax(self):
+        if self._state_income_tax: return self._state_income_tax
+        if self.location: return state_data.loc[self.location]['Income Tax Rate (decimal)']
+        return 0
+    @state_income_tax.setter
+    def state_income_tax(self, tax):
+        self._state_income_tax = tax
+        
+    @property
+    def property_tax(self):
+        if self._property_tax: return self._property_tax
+        if self.location: return state_data.loc[self.location]['Property Tax Rate (decimal)']
+    @property_tax.setter
+    def property_tax(self, tax):
+        self._property_tax = tax
+        
+    @property
+    def state_fuel_producer_tax(self):
+        if self._fuel_tax: return self._fuel_tax
+        if self.location: return state_data.loc[self.location]['State Motor Fuel Tax (decimal)']
+        return 0
+    @state_fuel_producer_tax.setter
+    def state_fuel_producer_tax(self, tax):
+        self._fuel_tax = tax
+        
+    @property
+    def sales_tax(self):
+        if self._sales_tax: return self._sales_tax
+        if self.location: return state_data.loc[self.location]['State Sales Tax Rate (decimal)']
+        return 0
+    @sales_tax.setter
+    def sales_tax(self, tax):
+        self._sales_tax = 0
+        
+    @property
+    def LCCF(self): #LCCF stands for location capital cost factor
+        if self._F_investment: return self._F_investment
+        if self.location: return state_data.loc[self.location]['Location Capital Cost Factor (dimensionless)']
+        return 1
+    @LCCF.setter
+    def LCCF(self, number):
+        self._F_investment = number
+        
+    # TODO make sure electricity price property is set up correctly
+    @property
+    def electricity_price(self):
+        if self.BT: return bst.PowerUtility.price
+        if self.location: return state_data.loc[self.location]['Electricity Price (USD/kWh)']
+        return 0.0681
+    @electricity_price.setter
+    def electricity_price(self, number):
+        bst.PowerUtility.price = number
+        
+    def get_state_incentives(self):
+        state = self.location
+        if not state: return []
+        avail_incentives = state_data.loc[state]['Incentives Available']
+        avail_incentives = [] if pd.isna(avail_incentives) else avail_incentives # no incentives
+        if avail_incentives is not None:
+            try: # multiple incentives
+                avail_incentives = [int(i) for i in avail_incentives if i.isnumeric()]
+            except TypeError: # only one incentive
+                avail_incentives = [int(avail_incentives)]
+        return avail_incentives
+        
+    # TODO make sure incentive numbers works properly
+    @property
+    def incentive_numbers(self):
+        if self._incentive_numbers: return self._incentive_numbers
+        if self.location: return self.get_state_incentives()
+        return []
+    @incentive_numbers.setter
+    def incentive_numbers(self, number):
+        number = [] if not number else number
+        self._incentive_numbers = list(number) # might need to adjust to accept multiple incentives
 
     _fill_tax_and_incentives = CellulosicIncentivesTEA._fill_tax_and_incentives
 
