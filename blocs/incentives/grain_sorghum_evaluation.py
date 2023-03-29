@@ -99,7 +99,7 @@ def create_gs_model():
                   'Virginia',
                   'West Virginia',
                   'Wisconsin']
-    
+
     model = bst.Model(tea.system, exception_hook='raise')
     bst.PowerUtility.price = 0.0681
     bst.CE = 596.2
@@ -111,7 +111,7 @@ def create_gs_model():
     tea.property_tax = 0.0136
     tea.F_investment = 1.02
     tea.jobs_50 = 25 # Kwiatkowski (2006) does not specify the number of jobs for a corn biorefinery, McAloon (2000) suggests that corn biorefineries provide half the jobs of cellulosic, assumption for cellulosic is 50 jobs
-    
+
     # gs.H3PO4.set_CF(GWP, 1.) # no phosphoric acid for gs
     lime_dilution = 1 - gs.lime.get_mass_composition('Water')
     gs.lime.set_CF(GWP, 1.28 * lime_dilution)
@@ -248,17 +248,18 @@ def create_gs_model():
             for i in names: setattr(tea, i, dct[i])
             return MFSP
         return MFSP
-    
+
     def GWP_getter(state):
         def get_GWP():
             tea.feedstock.set_CF(GWP, state_data.loc[state]['Grain Sorghum GWP (kg CO2e/kg)'], basis='kg', units='kg*CO2e') # !!! be sure to adjust for moisture content
+            # !!! will need to specify natrual gas CF separately bc natural gas consumption
             bst.PowerUtility.set_CF(key=GWP, consumption=state_data.loc[state]['Electricity GWP-100 (kg CO2-eq/kWh)'], production=state_data.loc[state]['Methane GWP-100 (kg CO2-eq/kWh)'], basis='kWhr', units='kg*CO2e')
             GWP_total_displacement = (tea.system.get_total_feeds_impact(GWP) + tea.system.get_net_electricity_impact(GWP)) # kg CO2 eq. / yr
             annual_ethanol_flow_rate = tea.system.get_mass_flow(gs.ethanol)
             GWP_ = GWP_total_displacement / annual_ethanol_flow_rate
             return GWP_
         return get_GWP
-    
+
     @model.metric(name='Utility cost', units='10^6 USD/yr')
     def get_utility_cost():
         return tea.utility_cost / 1e6
@@ -350,7 +351,7 @@ def create_gs_model():
                baseline=bst.PowerUtility.price)
     def set_electricity_price(price):
             bst.PowerUtility.price = price
-            
+
     return model
 
 def evaluate_SS(N=10):
