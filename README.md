@@ -27,6 +27,8 @@ After downloading BLocS, open and run evaluation.py.
 >>> evaluate_incT('cornstover',5000)
 ```
 
+If you just want to use the state-specific data included with BLocS, it's provided in [this file](https://github.com/BioSTEAMDevelopmentGroup/BLocS/blob/main/blocs/incentives/state_scenarios_for_import.xlsx). Tables 1, 2, and S2 in [[1]](#1) provide information on where the various data were collected from.
+
 ## References
 <a id="1">[1]</a>
   Stewart, D.W.; Cortés-Peña, Y.R.; Li, Y.; Stillwell, A.S.; Khanna, M.; Guest, J.S. (2023). Implications of biorefinery policy incentives and location-specific economic parameters for the financial viability of biofuels. _Environmental Science & Technology_, _57_(6), 2262–2271.
