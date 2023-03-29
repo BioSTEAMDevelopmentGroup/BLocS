@@ -29,4 +29,4 @@ After downloading BLocS, open and run evaluation.py.
 
 ## References
 <a id="1">[1]</a>
-  Stewart, D.W.; Cortés-Peña, Y.R.; Li, Y.; Stillwell, A.S.; Khanna, M.; Guest, J.S. (2023). Implications of biorefinery policy incentives and location-specific economic parameters for the financial viability of biofuels. _Environmental Science & Technology_, 57(6), 2262–2271.
+  Stewart, D.W.; Cortés-Peña, Y.R.; Li, Y.; Stillwell, A.S.; Khanna, M.; Guest, J.S. (2023). Implications of biorefinery policy incentives and location-specific economic parameters for the financial viability of biofuels. _Environmental Science & Technology_, _57_(6), 2262–2271.
