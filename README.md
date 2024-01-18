@@ -1,6 +1,6 @@
 # BioSTEAM Location-Specific Evaluation  (BLocS)
 
-This module allows BioSTEAM users to consider the impacts of economic and environmental parameters that vary by location. Current location-specific data includes income, property, producer fuel, and sales tax rates; feedstock prices (corn, corn stover, and sugarcane); electricity prices; location capital cost factors (LCCFs), and tax incentives for all 50 states in the US.
+This module allows BioSTEAM users to consider the impacts of economic and environmental parameters that vary by location. Current location-specific data includes income, property, fuel producer, and sales tax rates; feedstock prices (corn, corn stover, and sugarcane); electricity prices; natural gas prices; location capital cost factors (LCCFs), and tax incentives (available as of February 2020) for all 50 states in the US.
 
 ![BLocS Logo](https://github.com/BioSTEAMDevelopmentGroup/BLocS/blob/main/BLocS_logo.tiff "BLocS Logo")
 
@@ -31,4 +31,4 @@ If you just want to use the state-specific data included with BLocS, it's provid
 
 ## References
 <a id="1">[1]</a>
-  Stewart, D.W.; Cortés-Peña, Y.R.; Li, Y.; Stillwell, A.S.; Khanna, M.; Guest, J.S. (2023). Implications of biorefinery policy incentives and location-specific economic parameters for the financial viability of biofuels. _Environmental Science & Technology_, _57_(6), 2262–2271.
+  Stewart, D.W.; Cortés-Peña, Y.R.; Li, Y.; Stillwell, A.S.; Khanna, M.; Guest, J.S. Implications of biorefinery policy incentives and location-specific economic parameters for the financial viability of biofuels. _Environ. Sci. Technol._ **2023**, _57_ (6), 2262–2271.
