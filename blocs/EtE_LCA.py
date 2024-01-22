@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-
 @author: Dalton W. Stewart <dalton.w.stewart@gmail.com>
+
+This file performs life cycle assessment (LCA) of a corn stover biorefinery as 
+part of an end-to-end LCA of the overall corn stover ethanol supply chain. The
+corn stover carbon intensity was calculated based on an additional LCA integrating
+the results of
 """
 
 # %%
@@ -24,7 +28,7 @@ def LCA(biorefinery,
         elec_prod_CF=0.36, # https://greet.es.anl.gov/
         allocation=None):
    
-# Set keys to call material characterization factors    
+# Set keys to call material characterization factors (CFs)
     material_cradle_to_gate_key = ('GWP100', 'cradle_to_gate') 
     consumption_key = ('GWP100', 'cradle_to_gate') 
     production_key = ('GWP100', 'cradle_to_gate') 
@@ -36,8 +40,8 @@ def LCA(biorefinery,
     sys = cs.cornstover_sys
     for feed in sys.feeds:
         feed.characterization_factors[material_cradle_to_gate_key] = 0. #assume many are negligible
-        fs = cs.cornstover
-        et = cs.ethanol
+        feedstock = cs.cornstover
+        product = cs.ethanol
         cs.natural_gas.characterization_factors[material_cradle_to_gate_key] = 0.4+CO2_CH4
         cs.FGD_lime.characterization_factors[material_cradle_to_gate_key] = 1.28*0.451 #GREET, *0.451 to adjust from GREET dilution to ours
         cs.caustic.characterization_factors[material_cradle_to_gate_key] = 2.01*0.5 #GREET, *0.5 to adjust from GREET dilution to ours
@@ -46,11 +50,11 @@ def LCA(biorefinery,
         cs.CSL.characterization_factors[material_cradle_to_gate_key] = 1.56 #GREET
         cs.ammonia.characterization_factors[material_cradle_to_gate_key] = 2.58 #GREET
         cs.denaturant.characterization_factors[material_cradle_to_gate_key] = 0.88 #GREET
-        chems = cs.chemicals
+        chems = cs._chemicals
         if feedstock_CF == None:
-            fs.characterization_factors[material_cradle_to_gate_key] = 45.67/1000 #GREET #TODO: adjust for moisture content
+            feedstock.characterization_factors[material_cradle_to_gate_key] = 45.67/1000 #GREET #TODO: adjust for moisture content
         else:
-            fs.characterization_factors[material_cradle_to_gate_key] = feedstock_CF
+            feedstock.characterization_factors[material_cradle_to_gate_key] = feedstock_CF
         
     # Electricity CFs, consumption assumed = to regional mix factor, production assumed = to regional natural gas factor
     bst.PowerUtility.characterization_factors[consumption_key] = elec_cons_CF 
@@ -61,7 +65,7 @@ def LCA(biorefinery,
         
 # Determine net electricity and associated GWP
     net_electricity = bst.PowerUtility.sum([i.power_utility for i in sys.units])
-    GWP_electricity_production = net_electricity.get_impact(production_key=production_key, consumption_key=consumption_key)
+    GWP_electricity_production = net_electricity.get_impact('production')
          
 # Determine total GWP
 # For net electricity consumers, includes GWP due to electricity
@@ -82,7 +86,7 @@ def LCA(biorefinery,
     # higher heating value array for chemicals in J/mol, this is like the CF array, but note that it is per mol, not per kg
     HHVs = np.array([i.HHV for i in chems]) 
     # for ethanol
-    mol_ethanol = et.mol # in kmol/hr
+    mol_ethanol = product.mol # in kmol/hr
     e_ethanol = (HHVs * mol_ethanol).sum() # kmol/hr * J/mol, you have kJ/hr
     
     # for electricity, using net_electricity parameter calculated above
@@ -103,81 +107,20 @@ def LCA(biorefinery,
         if net_electricity.rate > 0:
             raise RuntimeError("Allocation cannot be performed for only one product.")
         else:
-            GWP_ethanol = GWP_offset / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
+            GWP_ethanol = GWP_offset / product.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     elif allocation == 'energy':
         if net_electricity.rate > 0:
             raise RuntimeError("Allocation cannot be performed for only one product.")
         else:
-            GWP_ethanol = GWP_eng / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
+            GWP_ethanol = GWP_eng / product.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     elif allocation == None:
-        GWP_ethanol = GWP_total / et.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
+        GWP_ethanol = GWP_total / product.F_mass * 2.98668849 # kg CO2 eq. / gal ethanol
     else: raise ValueError("invalid allocation method; must be either"
                            "'displacement' or 'energy'")
         
     return GWP_ethanol
-    
+
 # %%
-#Test model to determine GWP in different states
-#=============================================================================
-#TODO: this should be made its own file that calls the LCA function defined above
-
-#Import state scenario data
-folder = os.path.dirname(__file__)
-st_data_file = os.path.join(folder, 'state_scenarios_for_import.xlsx')
-st_data = pd.read_excel(st_data_file, index_col=[0])
-
-states = [
-           # 'Alaska',
-            'Arizona',
-            'Arkansas',
-            'California',
-            # 'Connecticut',
-            'Delaware',
-            'Florida',
-            'Georgia',
-            'Idaho',
-            'Illinois',
-            'Indiana',
-            # 'Maine',
-            'Maryland',
-            # 'Massachusetts',
-            'Minnesota',
-            'Mississippi',
-            'Missouri',
-            # 'Nevada',
-            # 'New Hampshire',
-            'New Jersey',
-            'New York',
-            'North Carolina',
-            'North Dakota',
-            'Ohio',
-            'Oklahoma',
-            'Pennsylvania',
-            # 'Rhode Island',
-            'South Dakota',
-            'Tennessee',
-           'Texas',
-            # 'Vermont',
-            'Washington',
-            'West Virginia',
-            'Wisconsin',
-            'Wyoming',
-            'Alabama',
-            'Colorado',
-            # 'Hawaii',
-            'Iowa',
-            'Kansas',
-            'Kentucky',
-           'Louisiana',
-            'Michigan',
-            'Montana',
-            'Nebraska',
-            'New Mexico',
-            'Oregon',
-            'South Carolina',
-            'Utah',
-            'Virginia'
-            ]
 
 def create_model(biorefinery):
     biorefinery = biorefinery.lower()
@@ -192,32 +135,27 @@ def create_model(biorefinery):
                          "'corn', 'cornstover', or 'sugarcane'")
     
     model = bst.Model(tea.system, exception_hook='raise')
-    bst.PowerUtility.price = 0.0685
-    tea.fuel_tax = 0.05
-    tea.sales_tax = 0.05785
-    tea.federal_income_tax = 0.35
-    tea.state_income_tax = 0.065
-    tea.property_tax = 0.0136
-    tea.F_investment = 1
     
+    ## Define model metrics
+    # Net electricity production
     @model.metric(name='Net electricity production', units='MWh/yr')
     def get_electricity_production():
         return sum(i.power_utility.rate for i in tea.system.units) * tea.operating_hours/1000
     
+    # Ethanol production
     @model.metric(name='Ethanol production', units='gal/yr')
     def get_ethanol_production():
         return tea.ethanol_product.F_mass * 2.98668849 * tea.operating_hours
     
-    def GWP_getter(state):
-        #fs_CF = 
-        elec_cons_CF = st_data.loc[state]['Electricity GWP-100 (kg CO2-eq/kWh)']
-        elec_prod_CF = st_data.loc[state]['Methane GWP-100 (kg CO2-eq/kWh)']
-        return lambda: LCA(biorefinery,0.06,elec_cons_CF=elec_cons_CF,elec_prod_CF=elec_prod_CF,allocation='displacement')
+    # Ethanol GWP according to displacement allocation
+    @model.metric(name='Displacement GWP', units='kg CO2e/kg ethanol')
+    def GWP_getter():
+        feedstock_CF = 0.06 # TODO: fix this CF
+        elec_cons_CF = 0.66 # from BLocS state specific data file for Illinois
+        elec_prod_CF = 0.56 # from BLocS state specific data file for Illinois
+        return LCA(biorefinery,feedstock_CF,elec_cons_CF=elec_cons_CF,elec_prod_CF=elec_prod_CF,allocation='displacement')
     
-    for state in states:
-        element = f"{state}"
-        model.metric(GWP_getter(state), 'GWP-100', 'kg CO2e / kg ethanol', element)
-        
+    ## Define model parameters subject to uncertainty
     # Plant capacity
     @model.parameter(element=tea.feedstock, kind='isolated', units='kg/hr',
                       distribution=triang(tea.feedstock.F_mass))
@@ -230,12 +168,12 @@ def create_model(biorefinery):
     
     if tea.BT:
         # Boiler efficiency
-        @model.parameter(name='Boiler eff', element=tea.BT, units='%', distribution=EGeff_dist)
+        @model.parameter(name='boiler efficiency', element=tea.BT, units='%', distribution=EGeff_dist)
         def set_boiler_efficiency(boiler_efficiency):
             tea.BT.boiler_efficiency = boiler_efficiency    
         
         # Turbogenerator efficiency
-        @model.parameter(name='TBG eff', element=tea.BT, units='%', distribution=TBGeff_dist)
+        @model.parameter(name='turbogenerator efficiency', element=tea.BT, units='%', distribution=TBGeff_dist)
         def set_turbogenerator_efficiency(turbo_generator_efficiency):
             tea.BT.turbogenerator_efficiency = turbo_generator_efficiency
 
@@ -249,5 +187,4 @@ def evaluate(biorefinery, N=10):
     model.load_samples(samples)
     model.evaluate()
     return model.table
-    
     
