@@ -148,12 +148,16 @@ def create_model(biorefinery):
         return tea.ethanol_product.F_mass * 2.98668849 * tea.operating_hours
     
     # Ethanol GWP according to displacement allocation
-    @model.metric(name='Displacement GWP', units='kg CO2e/kg ethanol')
+    @model.metric(name='Displacement GWP', units='kg CO2e/gal ethanol')
     def GWP_getter():
-        feedstock_CF = 0.06 # TODO: fix this CF
+        feedstock_CF = tea.feedstock.characterization_factors['GWP100', 'cradle_to_gate'] # TODO: fix this CF
         elec_cons_CF = 0.66 # from BLocS state specific data file for Illinois
         elec_prod_CF = 0.56 # from BLocS state specific data file for Illinois
         return LCA(biorefinery,feedstock_CF,elec_cons_CF=elec_cons_CF,elec_prod_CF=elec_prod_CF,allocation='displacement')
+    
+    @model.metric(name='Feedstock CO2', units='kg CO2e/gal ethanol')
+    def fs_CF_getter():
+        return tea.feedstock.F_mass * tea.feedstock.characterization_factors['GWP100', 'cradle_to_gate'] / (tea.ethanol_product.F_mass * 2.98668849)
     
     ## Define model parameters subject to uncertainty
     # Plant capacity
@@ -165,6 +169,7 @@ def create_model(biorefinery):
     # Electricty generation efficiency distribution
     EGeff_dist = shape.Triangle(0.7,0.85,0.9)
     TBGeff_dist = shape.Triangle(0.7,0.85,0.9)
+    fs_CF_dist = shape.Triangle(0.11,0.21,0.31)
     
     if tea.BT:
         # Boiler efficiency
@@ -176,6 +181,11 @@ def create_model(biorefinery):
         @model.parameter(name='turbogenerator efficiency', element=tea.BT, units='%', distribution=TBGeff_dist)
         def set_turbogenerator_efficiency(turbo_generator_efficiency):
             tea.BT.turbogenerator_efficiency = turbo_generator_efficiency
+            
+    # Feedstock characterization factor
+    @model.parameter(name='feedstock characterization factor', element=tea.feedstock, units='kgCO2e/kg', distribution=fs_CF_dist)
+    def set_feedstock_CF(CF):
+        tea.feedstock.characterization_factors['GWP100', 'cradle_to_gate'] = CF
 
     return model
 
