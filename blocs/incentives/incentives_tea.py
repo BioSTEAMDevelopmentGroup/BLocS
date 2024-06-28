@@ -57,6 +57,7 @@ def create_corn_tea():
     tea.steam.price = 0.01466
     tea.yeast = cn.yeast
     tea.yeast.price = 2.12
+    tea.natural_gas = cn.natural_gas
     return tea
 
 def create_sugarcane_tea():
@@ -124,6 +125,7 @@ def create_cornstover_tea():
     tea.boiler_chemicals.price = 7.4062
     tea.caustic = cs.caustic
     tea.caustic.price = 0.5931
+    tea.natural_gas = cs.natural_gas
     return tea
 
 # cellulosic: BT, feedstock, ethanol_product,
