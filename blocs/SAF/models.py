@@ -22,9 +22,9 @@ from warnings import filterwarnings; filterwarnings('ignore')
 import os
 folder = os.getcwd()
 results_path = folder + '/results/'
-results_1 = os.path.join(results_path, '_model_table_excess_elec_0.9.xlsx')
-results_2 = os.path.join(results_path, '_rho_excess_elec_0.9.xlsx')
-results_3 = os.path.join(results_path, '_p_excess_elec_0.9.xlsx')
+results_1 = os.path.join(results_path, '_model_table_0.935.xlsx')
+results_2 = os.path.join(results_path, '_rho_0.935.xlsx')
+results_3 = os.path.join(results_path, '_p_0.935.xlsx')
 
 _gal_per_m3 = 1000/3.785412
 _L_per_gal = 3.785412
@@ -35,18 +35,18 @@ __all__ = ('create_model')
 
 #%%
 # This function is not actiavted for figure 1, set split ratio = 0.935283376404842
-# @sys.add_bounded_numerical_specification(x0=0, x1=0.3, xtol=1e-4, ytol=100)
-# def adjust_bagasse_to_boiler(fraction_burned):
-#     F.S102.split[:] = 1 - fraction_burned
-#     sys.simulate()
-#     F.BT._design()
-#     excess = F.BT._excess_electricity_without_natural_gas
-#     if fraction_burned == 0 and excess > 0:
-#         return 0
-#     elif fraction_burned == 0.3 and excess < 0:
-#         return 0
-#     else:
-#         return excess
+@sys.add_bounded_numerical_specification(x0=0, x1=0.3, xtol=1e-4, ytol=100)
+def adjust_bagasse_to_boiler(fraction_burned):
+    F.S102.split[:] = 1 - fraction_burned
+    sys.simulate()
+    F.BT._design()
+    excess = F.BT._excess_electricity_without_natural_gas
+    if fraction_burned == 0 and excess > 0:
+        return 0
+    elif fraction_burned == 0.3 and excess < 0:
+        return 0
+    else:
+        return excess
 
 load_preferences_and_process_settings(T='K',
                                       flow_units='kg/hr',
@@ -479,7 +479,7 @@ def model_specification():
 def run_model(model=model, notify_runs=10):
     df = pd.read_excel('data_processing.xlsx',sheet_name='samples')
     sample_list = []
-    for i in range(2,12470):
+    for i in range(2,12750):
         row_as_list = df.iloc[i, 1:].tolist() 
         sample_list.append(row_as_list)    
     sample_list = np.array(sample_list)
